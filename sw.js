@@ -1,7 +1,7 @@
 // Weekly Meal Planner — offline cache
 // Bump CACHE_NAME any time index.html/manifest/icons change, so old
 // devices pick up the new version instead of serving stale files.
-const CACHE_NAME = "meal-planner-cache-v8";
+const CACHE_NAME = "meal-planner-cache-v9";
 
 const APP_SHELL = [
   "./",
