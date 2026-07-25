@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Weekly Meal Planner</title>
+
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#a3814f">
+<link rel="icon" href="./icon-192.png">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Meal Planner">
+<meta name="mobile-web-app-capable" content="yes">
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root{
+    --kraft:#c3a06e; --kraft-deep:#a3814f;
+    --paper:#fffdf6; --shadow:rgba(43,33,24,0.28);
+    --ink:#2b2118; --ink-soft:#6b5842; --line:#ddceac;
+    --fiber:#4f7a52; --fiber-bg:#e4ede4; --fiber-deep:#345b37;
+    --protein:#b8402b; --protein-bg:#f6e2da; --protein-deep:#8c2c1a;
+    --funday:#c98a2c;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; background:var(--kraft); color:var(--ink); font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; }
+  body::before{
+    content:""; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:0.05; mix-blend-mode:multiply;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .wrap{ position:relative; z-index:1; max-width:1180px; margin:0 auto; padding:28px 20px 80px; }
+
+  .layout{ display:grid; grid-template-columns:1fr 300px; gap:22px; align-items:start; }
+  @media (max-width:940px){ .layout{ grid-template-columns:1fr; } }
+  .main-col{ min-width:0; }
+  .frozen-top{
+    position:sticky; top:0; z-index:20;
+    background:var(--kraft); padding-bottom:4px;
+    box-shadow:0 10px 14px -10px rgba(43,33,24,0.35);
+  }
+
+  header.board{
+    background:var(--kraft-deep); border-radius:4px; padding:24px 26px 22px;
+    box-shadow:0 10px 26px var(--shadow), inset 0 0 0 1px rgba(255,255,255,0.08);
+    margin:0 0 18px;
+  }
+
+  .eyebrow{ font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:rgba(255,253,246,0.75); margin:0 0 6px; }
+  h1{ font-family:'Fraunces',serif; font-weight:700; font-size:clamp(22px,2.6vw,32px); line-height:1.05; margin:0 0 8px; color:var(--paper); letter-spacing:-0.01em; white-space:nowrap; }
+  @media (max-width:640px){ h1{ white-space:normal; } }
+  .sub{ font-family:'IBM Plex Mono',monospace; color:rgba(255,253,246,0.82); font-size:12.5px; letter-spacing:.04em; max-width:560px; margin:0; }
+
+  /* controls row: tab switcher + action buttons, side by side below the header */
+  .controls-row{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin:0 0 18px; }
+
+  /* tab switcher */
+  .tabswitch{ display:inline-flex; flex-shrink:0; background:var(--paper); border:1px solid var(--line); border-radius:22px; padding:4px; gap:3px; box-shadow:0 4px 10px var(--shadow); }
+  .tabswitch button{
+    font-family:'Inter',sans-serif; font-weight:600; font-size:13px; line-height:1.2; border:1.5px solid transparent; background:none;
+    color:var(--ink-soft); padding:9px 16px; border-radius:18px; cursor:pointer; text-align:center;
+    white-space:nowrap; flex-shrink:0;
+    transition:background .15s,color .15s,border-color .15s;
+  }
+  .tabswitch button.active{ background:var(--paper); border-color:var(--ink); color:var(--ink); font-weight:700; }
+  .tabswitch button:focus-visible{ outline:2px solid var(--ink); outline-offset:2px; }
+
+  .toolbar{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; flex-shrink:0; }
+  .btn{ font-family:'Inter',sans-serif; font-weight:600; font-size:13.5px; border:none; border-radius:3px; padding:10px 18px; cursor:pointer; transition:transform .1s, filter .15s, background .15s; white-space:nowrap; flex-shrink:0; }
+  .btn:active{ transform:translateY(1px); }
+  .btn:focus-visible{ outline:2px solid var(--ink); }
+  .btn-hero{ background:var(--protein); color:var(--paper); font-size:14.5px; padding:11px 20px; box-shadow:0 4px 10px rgba(0,0,0,0.25); }
+  .btn-hero:hover{ filter:brightness(1.08); }
+  .btn-ghost{ background:rgba(255,253,246,0.6); color:var(--ink); border:1px solid var(--kraft-deep); }
+  .btn-ghost:hover{ background:var(--paper); }
+
+  .days{ display:flex; flex-direction:column; gap:14px; }
+
+  /* day quick-pick tabs + nav arrows, all in one row */
+  .day-nav-row{ display:flex; align-items:center; gap:16px; margin-bottom:14px; }
+  .day-tabs{ display:flex; gap:22px; flex-wrap:wrap; flex:1; }
+  .day-tab{
+    background:none; border:none; cursor:pointer; padding:4px 1px;
+    font-family:'Inter',sans-serif; font-weight:700; font-size:15px;
+    color:var(--protein-deep); border-bottom:2px solid transparent;
+  }
+  .day-tab:hover{ color:var(--ink); }
+  .day-tab.active{ color:var(--ink); border-bottom-color:var(--protein); }
+  .day-tab:focus-visible{ outline:2px solid var(--ink); }
+
+  .arrow-btn{
+    width:38px; height:34px; border-radius:6px; border:none; cursor:pointer; flex-shrink:0;
+    background:var(--kraft-deep); color:var(--paper); font-size:16px;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 3px 8px var(--shadow); transition:filter .15s, transform .1s;
+  }
+  .arrow-btn:hover{ filter:brightness(1.1); }
+  .arrow-btn:active{ transform:translateY(1px); }
+  .arrow-btn:disabled{ opacity:0.35; cursor:default; }
+  .arrow-btn:focus-visible{ outline:2px solid var(--ink); outline-offset:2px; }
+
+  .day-card{ background:var(--paper); border-radius:3px; padding:15px 17px 16px; box-shadow:0 6px 14px var(--shadow); position:relative; }
+  .day-card.funday{ box-shadow:0 0 0 2px var(--funday), 0 8px 16px var(--shadow); }
+  .day-top{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:11px; flex-wrap:wrap; }
+  .day-name{ font-family:'Fraunces',serif; font-weight:600; font-size:19px; margin:0; }
+  .day-name .tag{ font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; background:var(--funday); color:var(--paper); padding:2px 7px; border-radius:8px; margin-left:8px; vertical-align:middle; }
+  .day-actions{ display:flex; gap:6px; }
+  .mini-btn{ font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.04em; background:none; border:1px solid var(--line); color:var(--ink-soft); border-radius:12px; padding:4px 10px; cursor:pointer; }
+  .mini-btn:hover{ border-color:var(--ink-soft); color:var(--ink); }
+
+  .cats{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width:600px){ .cats{ grid-template-columns:1fr; } }
+
+  /* set-choices chip list */
+  .cat-block h3{ font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; margin:0 0 8px; display:flex; align-items:center; gap:6px; }
+  .cat-block.fiber h3{ color:var(--fiber-deep); }
+  .cat-block.protein h3{ color:var(--protein-deep); }
+  .dot{ width:8px; height:8px; border-radius:50%; display:inline-block; }
+  .fiber .dot{ background:var(--fiber); }
+  .protein .dot{ background:var(--protein); }
+  .opt-list{ display:flex; flex-direction:column; gap:4px; }
+  .opt{
+    display:flex; align-items:center; gap:8px; text-align:left;
+    border:1px solid var(--line); background:none; border-radius:3px;
+    padding:5.5px 9px; font-family:'Inter',sans-serif; font-size:12.5px; cursor:pointer;
+    color:var(--ink); width:100%;
+  }
+  .opt .num{ font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--ink-soft); width:14px; flex-shrink:0; }
+  .opt:hover{ border-color:var(--ink-soft); }
+  .opt:focus-visible{ outline:2px solid var(--ink); }
+  .fiber .opt.selected{ background:var(--fiber-bg); border-color:var(--fiber); }
+  .fiber .opt.selected .num{ color:var(--fiber-deep); }
+  .protein .opt.selected{ background:var(--protein-bg); border-color:var(--protein); }
+  .protein .opt.selected .num{ color:var(--protein-deep); }
+  .opt .check{ margin-left:auto; opacity:0; font-size:12px; }
+  .opt.selected .check{ opacity:1; }
+  .fiber .opt.selected .check{ color:var(--fiber-deep); }
+  .protein .opt.selected .check{ color:var(--protein-deep); }
+
+  /* ---------- Summary receipt ---------- */
+  .receipt-col{ position:sticky; top:20px; }
+  .receipt{ background:var(--paper); box-shadow:0 8px 20px var(--shadow); padding:0 16px 15px; }
+  .receipt-zig{ height:12px; background:linear-gradient(-45deg,var(--kraft) 6px,transparent 0) 0 0/12px 12px, linear-gradient(45deg,var(--kraft) 6px,transparent 0) 0 0/12px 12px; background-color:var(--paper); }
+  .receipt-zig.bottom{ transform:rotate(180deg); }
+  .receipt-head{ text-align:center; padding:12px 0 9px; border-bottom:1px dashed var(--line); }
+  .receipt-head h2{ font-family:'Fraunces',serif; font-size:18px; margin:0 0 2px; }
+  .receipt-head .rsub{ font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--ink-soft); }
+  .rrow{ display:flex; justify-content:space-between; align-items:baseline; padding:6px 0; border-bottom:1px dashed var(--line); font-size:12px; gap:8px; line-height:1.45; }
+  .rrow:last-of-type{ border-bottom:none; }
+  .rrow .rday{ font-family:'IBM Plex Mono',monospace; font-size:10.5px; text-transform:uppercase; color:var(--ink-soft); flex-shrink:0; width:50px; }
+  .rrow .rpicks{ text-align:right; flex:1; }
+  .rrow .rpicks .fp{ color:var(--fiber-deep); }
+  .rrow .rpicks .pp{ color:var(--protein-deep); }
+  .rrow .rpicks .empty{ color:var(--ink-soft); font-style:italic; }
+  .rrow .rpicks .val-edit{
+    display:inline-block; cursor:pointer; border-bottom:1px dotted var(--line);
+    padding:1px 2px; border-radius:2px; max-width:100%;
+  }
+  .rrow .rpicks .val-edit:hover{ border-bottom-color:var(--ink); background:rgba(43,33,24,0.06); }
+  .rrow .rpicks .val-edit::after{ content:" ✎"; font-size:9px; opacity:0.5; }
+  .rrow .rpicks input{
+    width:100%; text-align:right; font-family:'Inter',sans-serif; font-size:12px;
+    border:1px solid var(--ink-soft); border-radius:3px; padding:2px 5px; color:var(--ink); background:var(--paper);
+  }
+  .receipt-count{ text-align:center; font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink-soft); margin-top:9px; }
+  .receipt-actions{ margin-top:11px; display:flex; gap:8px; }
+  .receipt-actions .btn{ flex:1; font-size:12px; padding:7px 10px; }
+  .btn-outline{ background:none; border:1px solid var(--ink-soft); color:var(--ink); }
+  .btn-outline:hover{ background:var(--ink); color:var(--paper); }
+
+  footer.note{ text-align:center; margin-top:26px; font-family:'IBM Plex Mono',monospace; font-size:11px; color:rgba(43,33,24,0.55); }
+
+  .hidden{ display:none !important; }
+  @media (prefers-reduced-motion:reduce){ *{ transition:none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="layout">
+    <div class="main-col">
+      <div class="frozen-top">
+        <header class="board">
+          <p class="eyebrow">Weekly Meal Planner</p>
+          <h1 id="pageTitle">Pick your Fiber and Protein.</h1>
+          <p class="sub" id="pageSub">34 fiber options · 34 protein options</p>
+        </header>
+
+        <div class="controls-row">
+          <div class="tabswitch" role="tablist">
+            <button id="tabBtnSet" class="active" role="tab" aria-selected="true">Daily Set Menu</button>
+            <button id="tabBtnFull" role="tab" aria-selected="false">Full List Builder</button>
+          </div>
+          <div class="toolbar" id="toolbarSet">
+            <button class="btn btn-hero" id="notSureBtnSet">🤔 I am not sure</button>
+            <button class="btn btn-ghost" id="clearAllBtnSet">Clear all</button>
+          </div>
+          <div class="toolbar hidden" id="toolbarFull">
+            <button class="btn btn-hero" id="notSureBtnFull">🤔 I am not sure</button>
+            <button class="btn btn-ghost" id="clearAllBtnFull">Clear all</button>
+          </div>
+        </div>
+
+        <div class="day-nav-row" id="scNavRow">
+          <button class="arrow-btn" id="scPrevDay" aria-label="Previous day">←</button>
+          <div class="day-tabs" id="scDayTabs"></div>
+          <button class="arrow-btn" id="scNextDay" aria-label="Next day">→</button>
+        </div>
+        <div class="day-nav-row hidden" id="flNavRow">
+          <button class="arrow-btn" id="flPrevDay" aria-label="Previous day">←</button>
+          <div class="day-tabs" id="flDayTabs"></div>
+          <button class="arrow-btn" id="flNextDay" aria-label="Next day">→</button>
+        </div>
+      </div>
+
+      <!-- ===================== TAB 1: Daily Set Menu ===================== -->
+      <div id="tabSetChoices">
+        <div class="days" id="scDaysList"></div>
+        <footer class="note">Tap an item to choose it. Tap it again to clear that pick.</footer>
+      </div>
+
+      <!-- ===================== TAB 2: Full List Builder ===================== -->
+      <div id="tabFullList" class="hidden">
+        <div class="days" id="flDaysList"></div>
+        <footer class="note">Tap an item to choose it. Tap it again to clear that pick.</footer>
+      </div>
+    </div>
+
+    <div class="receipt-col">
+      <div class="receipt" id="scReceipt">
+        <div class="receipt-zig"></div>
+        <div class="receipt-head">
+          <h2 id="scReceiptTitle" style="cursor:pointer;" title="Click to fill the whole week">This Week's Menu</h2>
+          <div class="rsub" id="scRSub">— pick to fill - click to type —</div>
+        </div>
+        <div id="scRBody"></div>
+        <div class="receipt-count" id="scRCount"></div>
+        <div class="receipt-actions">
+          <button class="btn btn-outline" id="scCopyBtn">Copy plan</button>
+        </div>
+        <div class="receipt-zig bottom"></div>
+      </div>
+      <div class="receipt hidden" id="flReceipt">
+        <div class="receipt-zig"></div>
+        <div class="receipt-head">
+          <h2 id="flReceiptTitle" style="cursor:pointer;" title="Click to fill the whole week">This Week's Menu</h2>
+          <div class="rsub" id="flRSub">— pick to fill - click to type —</div>
+        </div>
+        <div id="flRBody"></div>
+        <div class="receipt-count" id="flRCount"></div>
+        <div class="receipt-actions">
+          <button class="btn btn-outline" id="flCopyBtn">Copy plan</button>
+        </div>
+        <div class="receipt-zig bottom"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ================= Tab switching ================= */
+  const tabBtnSet = document.getElementById('tabBtnSet');
+  const tabBtnFull = document.getElementById('tabBtnFull');
+  const tabSetChoices = document.getElementById('tabSetChoices');
+  const tabFullList = document.getElementById('tabFullList');
+  const toolbarSet = document.getElementById('toolbarSet');
+  const toolbarFull = document.getElementById('toolbarFull');
+  const scNavRow = document.getElementById('scNavRow');
+  const flNavRow = document.getElementById('flNavRow');
+  const scReceipt = document.getElementById('scReceipt');
+  const flReceipt = document.getElementById('flReceipt');
+  const pageTitle = document.getElementById('pageTitle');
+
+  function showSet(){
+    tabBtnSet.classList.add('active'); tabBtnSet.setAttribute('aria-selected','true');
+    tabBtnFull.classList.remove('active'); tabBtnFull.setAttribute('aria-selected','false');
+    tabSetChoices.classList.remove('hidden'); tabFullList.classList.add('hidden');
+    toolbarSet.classList.remove('hidden'); toolbarFull.classList.add('hidden');
+    scNavRow.classList.remove('hidden'); flNavRow.classList.add('hidden');
+    scReceipt.classList.remove('hidden'); flReceipt.classList.add('hidden');
+    pageTitle.innerHTML = "Pick your Fiber and Protein.";
+  }
+  function showFull(){
+    tabBtnFull.classList.add('active'); tabBtnFull.setAttribute('aria-selected','true');
+    tabBtnSet.classList.remove('active'); tabBtnSet.setAttribute('aria-selected','false');
+    tabFullList.classList.remove('hidden'); tabSetChoices.classList.add('hidden');
+    toolbarFull.classList.remove('hidden'); toolbarSet.classList.add('hidden');
+    flNavRow.classList.remove('hidden'); scNavRow.classList.add('hidden');
+    flReceipt.classList.remove('hidden'); scReceipt.classList.add('hidden');
+    pageTitle.innerHTML = "Build from the full list.";
+  }
+  tabBtnSet.addEventListener('click', showSet);
+  tabBtnFull.addEventListener('click', showFull);
+
+  function escapeHtml(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+  function shuffled(arr){
+    const a = arr.slice();
+    for(let i=a.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+    return a;
+  }
+
+  /* ================= TAB 1: Daily Set Menu ================= */
+  (function(){
+    const DAYS = [
+      {id:"mon", label:"Monday", funday:false,
+        fiber:["Ngon su su xào tỏi","Rau bí xào tỏi","Rau lang xào tỏi","Canh rau ngót","Canh cải cúc","Rau cần xào"],
+        protein:["Gà hấp","Gà rang gừng","Cánh/Đùi Gà rán","Gà xào nấm","Gà tẩm bột rán","Gà tần ngải cứu"]},
+      {id:"tue", label:"Tuesday", funday:false,
+        fiber:["Bắp cải luộc","Cải thảo xào nấm","Cải làn xào tỏi","Cải thìa xào nấm","Cải ngọt nấu canh","Cải xoong xào"],
+        protein:["Bò hầm","Bò kho","Bò bít tết","Bò xào hành tây","Bò cari","Bê xào"]},
+      {id:"wed", label:"Wednesday", funday:false,
+        fiber:["Bí đỏ xào tỏi","Bí ngòi xào tỏi","Cà tím đậu phụ","Ngồng cải luộc","Cải chíp xào nấm","Đậu bắp hấp"],
+        protein:["Cá điêu hồng rán","Cá lăng nướng chả","Cá trắm kho giềng","Cá ba sa kho tộ","Cá chép hấp xì dầu","Cá chép om dưa"]},
+      {id:"thu", label:"Thursday", funday:false,
+        fiber:["Rau muống xào tỏi","Mồng tơi xào tỏi","Xúp lơ xanh luộc","Xúp lơ trắng xào","Canh rau đay","Ngó xuân xào tỏi"],
+        protein:["Đậu nhồi thịt","Đậu rán tẩm hành","Đậu phụ thịt băm","Trứng tráng hành củ","Trứng rán (ốp la)","Lợn quay"]},
+      {id:"fri", label:"Friday", funday:false,
+        fiber:["Cải xanh xào","Su su xào","Mướp xào giá","Bầu nấu tôm","Bí xanh xào tỏi","Mướp đắng nhồi thịt"],
+        protein:["Tôm sú hấp","Tôm rim","Tôm xào nấm","Đùi/Cánh gà rán","Lẩu gà thuốc bắc","Gà nấu cari"]},
+      {id:"sat", label:"Saturday", funday:false,
+        fiber:["Rau dền luộc","Cà rốt / Củ cải luộc","Lặc lè/mướp nhật luộc","Xu hào xào","Đậu rồng luộc","Cải bó xôi xào"],
+        protein:["Cá hồi nướng","Cá tầm rang muối","Cá thu rán","Cá nục kho","Cá diếc kho","Cá tầm canh chua"]},
+      {id:"sun", label:"Sunday", funday:false,
+        fiber:["Xà lách, cà chua, dưa leo","Đậu xanh/Đậu vàng xào","Đậu đũa xào","Măng tây xào","Canh nấm","Canh dọc mùng"],
+        protein:["Trứng đúc thịt băm","Thăn/nọng rán","Dọi kho trứng","Ba chỉ rang cháy cạnh","Chân giò giả cầy","Sườn chua ngọt"]},
+      {id:"fun", label:"Funday", funday:true,
+        fiber:["Khoai sọ nấu sườn","Cà tím dài om thịt băm","Salad gà + hành tây","Nộm hoa chuối","Bắp cải tím trộn dầu dấm","Cải kale nấu canh"],
+        protein:["Cá lóc kho khô","Cá lăng+thịt dọi","Cá mòi kho nhừ","Tôm hoàng bào","Trứng cút kho thịt","Trứng cà chua"]}
+    ];
+
+    let selections = {};
+    DAYS.forEach(d=> selections[d.id] = {fiber:{idx:null,custom:null}, protein:{idx:null,custom:null}});
+    let currentDay = (new Date().getDay() + 6) % 7; // 0=Mon...6=Sun, defaults to today
+
+    function displayText(day, cat){
+      const sel = selections[day.id][cat];
+      if(sel.custom) return sel.custom;
+      if(sel.idx!==null) return day[cat][sel.idx];
+      return null;
+    }
+
+    function renderDayTabs(){
+      const tabs = document.getElementById('scDayTabs');
+      tabs.innerHTML = "";
+      DAYS.forEach((day, idx)=>{
+        const btn = document.createElement('button');
+        btn.className = "day-tab" + (idx===currentDay ? " active":"");
+        btn.textContent = day.label;
+        btn.addEventListener('click', ()=>{ currentDay = idx; renderAll(); });
+        tabs.appendChild(btn);
+      });
+      document.getElementById('scPrevDay').disabled = currentDay===0;
+      document.getElementById('scNextDay').disabled = currentDay===DAYS.length-1;
+    }
+
+    function renderDays(){
+      const wrap = document.getElementById('scDaysList');
+      wrap.innerHTML = "";
+      const day = DAYS[currentDay];
+
+      const card = document.createElement('div');
+      card.className = "day-card" + (day.funday? " funday":"");
+      card.innerHTML = `
+        <div class="day-top">
+          <p class="day-name">${day.label}${day.funday? '<span class="tag">wildcard</span>':''}</p>
+          <div class="day-actions">
+            <button class="mini-btn" data-act="shuffle" data-day="${day.id}">Shuffle day</button>
+            <button class="mini-btn" data-act="clear" data-day="${day.id}">Clear</button>
+          </div>
+        </div>
+        <div class="cats">
+          <div class="cat-block fiber">
+            <h3><span class="dot"></span>Fiber</h3>
+            <div class="opt-list" data-day="${day.id}" data-cat="fiber"></div>
+          </div>
+          <div class="cat-block protein">
+            <h3><span class="dot"></span>Protein</h3>
+            <div class="opt-list" data-day="${day.id}" data-cat="protein"></div>
+          </div>
+        </div>`;
+      wrap.appendChild(card);
+
+      ["fiber","protein"].forEach(cat=>{
+        const listEl = card.querySelector(`.opt-list[data-cat="${cat}"]`);
+        day[cat].forEach((text, idx)=>{
+          const btn = document.createElement('button');
+          const isSel = selections[day.id][cat].idx === idx && !selections[day.id][cat].custom;
+          btn.className = "opt" + (isSel? " selected":"");
+          btn.innerHTML = `<span class="num">${idx+1}</span><span>${escapeHtml(text)}</span><span class="check">✓</span>`;
+          btn.addEventListener('click', ()=>{
+            const cur = selections[day.id][cat];
+            selections[day.id][cat] = (cur.idx===idx && !cur.custom) ? {idx:null,custom:null} : {idx:idx,custom:null};
+            renderAll();
+          });
+          listEl.appendChild(btn);
+        });
+      });
+
+      card.querySelector('[data-act="shuffle"]').addEventListener('click', ()=>{
+        selections[day.id].fiber = {idx: Math.floor(Math.random()*6), custom:null};
+        selections[day.id].protein = {idx: Math.floor(Math.random()*6), custom:null};
+        renderAll();
+      });
+      card.querySelector('[data-act="clear"]').addEventListener('click', ()=>{
+        selections[day.id] = {fiber:{idx:null,custom:null}, protein:{idx:null,custom:null}};
+        renderAll();
+      });
+    }
+
+    document.getElementById('scPrevDay').addEventListener('click', ()=>{
+      if(currentDay>0){ currentDay--; renderAll(); }
+    });
+    document.getElementById('scNextDay').addEventListener('click', ()=>{
+      if(currentDay<DAYS.length-1){ currentDay++; renderAll(); }
+    });
+
+    function startEdit(span, day, cat){
+      const current = displayText(day, cat) || "";
+      const input = document.createElement('input');
+      input.type = "text";
+      input.value = current;
+      input.placeholder = "Type a dish…";
+      span.replaceWith(input);
+      input.focus();
+      input.select();
+      function commit(){
+        const val = input.value.trim();
+        selections[day.id][cat] = val ? {idx:null, custom:val} : {idx:null, custom:null};
+        renderAll();
+      }
+      input.addEventListener('blur', commit);
+      input.addEventListener('keydown', (e)=>{
+        if(e.key==='Enter'){ e.preventDefault(); input.blur(); }
+        if(e.key==='Escape'){ e.preventDefault(); renderAll(); }
+      });
+    }
+
+    function renderReceipt(){
+      const body = document.getElementById('scRBody');
+      const sub = document.getElementById('scRSub');
+      const count = document.getElementById('scRCount');
+      body.innerHTML = "";
+      let complete = 0;
+      DAYS.forEach(day=>{
+        const fText = displayText(day, 'fiber');
+        const pText = displayText(day, 'protein');
+        const row = document.createElement('div');
+        row.className = "rrow";
+        row.innerHTML = `<span class="rday">${day.label}</span><span class="rpicks"></span>`;
+        const picks = row.querySelector('.rpicks');
+
+        const fSpan = document.createElement('span');
+        fSpan.className = "val-edit " + (fText ? "fp" : "empty");
+        fSpan.textContent = fText || "—";
+        fSpan.title = "Click to type a dish"; fSpan.addEventListener('click', ()=> startEdit(fSpan, day, 'fiber'));
+        picks.appendChild(fSpan);
+        picks.appendChild(document.createElement('br'));
+        const pSpan = document.createElement('span');
+        pSpan.className = "val-edit " + (pText ? "pp" : "empty");
+        pSpan.textContent = pText || "—";
+        pSpan.title = "Click to type a dish"; pSpan.addEventListener('click', ()=> startEdit(pSpan, day, 'protein'));
+        picks.appendChild(pSpan);
+
+        body.appendChild(row);
+        if(fText && pText) complete++;
+      });
+      sub.textContent = complete ? `— ${complete} of ${DAYS.length} days set —` : "— pick to fill - click to type —";
+      count.textContent = complete===DAYS.length ? "Full week planned ✓" : (DAYS.length-complete) + " day" + (DAYS.length-complete===1?"":"s") + " left to choose";
+    }
+
+    function fillWeekSet(){
+      DAYS.forEach(day=>{
+        selections[day.id].fiber = {idx: Math.floor(Math.random()*6), custom:null};
+        selections[day.id].protein = {idx: Math.floor(Math.random()*6), custom:null};
+      });
+      renderAll();
+    }
+    document.getElementById('notSureBtnSet').addEventListener('click', fillWeekSet);
+    document.getElementById('scReceiptTitle').addEventListener('click', fillWeekSet);
+    document.getElementById('clearAllBtnSet').addEventListener('click', ()=>{
+      DAYS.forEach(day=> selections[day.id] = {fiber:{idx:null,custom:null}, protein:{idx:null,custom:null}});
+      renderAll();
+    });
+    document.getElementById('scCopyBtn').addEventListener('click', async ()=>{
+      let text = "This Week's Menu\n\n";
+      DAYS.forEach(day=>{
+        const f = displayText(day, 'fiber') || "—";
+        const p = displayText(day, 'protein') || "—";
+        text += day.label + "\n  Fiber: " + f + "\n  Protein: " + p + "\n\n";
+      });
+      const btn = document.getElementById('scCopyBtn');
+      try{
+        await navigator.clipboard.writeText(text);
+        const orig = btn.textContent;
+        btn.textContent = "Copied ✓";
+        setTimeout(()=>{ btn.textContent = orig; }, 1400);
+      }catch(err){
+        const orig = btn.textContent;
+        btn.textContent = "Couldn't copy";
+        setTimeout(()=>{ btn.textContent = orig; }, 1400);
+      }
+    });
+
+    function renderAll(){ renderDayTabs(); renderDays(); renderReceipt(); }
+    renderAll();
+  })();
+
+  /* ================= TAB 2: Full List Builder ================= */
+  (function(){
+    const MASTER_FIBER = [
+      "Muống","Cải bắp / Cải tím","Cải xanh / Cải ngọt","Cải thảo trắng / tím","Cải thìa / cải cúc",
+      "Bó xôi / Cải xoăn","Cải ngồng / Cải làn","Cải bẹ trắng/xanh","Rau ngót","Dền đỏ / trắng",
+      "Đay / Mồng tơi","Ngọn Khoai / su su / Rau bí","Salad / Rau diếp","Lơ trắng / Lơ xanh","Củ cải / Cà rốt / Su hào",
+      "Bí xanh","Bí đỏ","Bí ngòi xanh / vàng","Bầu / Susu","Mướp ngọt / mướp đắng",
+      "Lặc lè / Mướp nhật","Đậu xanh / Đậu vàng","Đậu đũa / Đậu bắp / Đậu rồng","Ớt chuông xanh/đỏ/vàng","Cà tím / Cà chua",
+      "Cải xoong","Rau cần / Rau rút","Dưa chuột / Bơ","Giá đỗ / Kim Chi","Hành tây / tỏi tây / cần tây",
+      "Măng tây / Ngải cứu","Thiên lý / Nấm","Khoai môn/mỡ/sọ - Khoai tây","Củ dền / củ cải đỏ"
+    ];
+    const MASTER_PROTEIN = [
+      "Tôm rang / hấp / rán","Trứng đúc thịt","Gà rang gừng / kho nghệ","Chả / lá lốt / sương sông","Cá lăng / Trê / Ba sa",
+      "Gà xào nấm","3 chỉ cháy cạnh / kho trứng","Cá trắm / Chép / Mè","Trứng cà chua","Gà cari",
+      "Nạc vai rim mắm / rán","Cá rô / Điêu hồng","Cá tầm bột rán","Lợn rán","Cá nục / thu",
+      "Đậu thịt băm","Gà quay / hấp","Chân giò hầm","Cá quả / Cá trôi","Đậu rán tẩm hành",
+      "Gà salad hành tây","Bò cari / sốt vang","Cá hồi / Cá ngừ","Trứng gà cà chua","Gà tần ngải cứu",
+      "Bò kho / Bò xào","Đùi gà rán","Thịt luộc / Đậu luộc","Cá diếc","Trứng rán - kho",
+      "Cánh gà rán","Thịt bằm rang mắm","Chân giò giả cầy","Lợn rim cà chua"
+    ];
+
+    const DAY_LABELS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+    const DAYS = DAY_LABELS.map((label,i)=>({id:"d"+i, label}));
+
+    let selections = {};
+    DAYS.forEach(d=> selections[d.id] = {fiber:null, protein:null});
+    let currentDay = (new Date().getDay() + 6) % 7; // 0=Mon...6=Sun, defaults to today
+
+    function renderDayTabs(){
+      const tabs = document.getElementById('flDayTabs');
+      tabs.innerHTML = "";
+      DAYS.forEach((day, idx)=>{
+        const btn = document.createElement('button');
+        btn.className = "day-tab" + (idx===currentDay ? " active":"");
+        btn.textContent = day.label;
+        btn.addEventListener('click', ()=>{ currentDay = idx; renderAll(); });
+        tabs.appendChild(btn);
+      });
+      document.getElementById('flPrevDay').disabled = currentDay===0;
+      document.getElementById('flNextDay').disabled = currentDay===DAYS.length-1;
+    }
+
+    function renderDays(){
+      const wrap = document.getElementById('flDaysList');
+      wrap.innerHTML = "";
+      const day = DAYS[currentDay];
+      const sel = selections[day.id];
+
+      const card = document.createElement('div');
+      card.className = "day-card";
+      card.innerHTML = `
+        <div class="day-top">
+          <p class="day-name">${day.label}</p>
+          <div class="day-actions">
+            <button class="mini-btn" data-act="shuffle" data-day="${day.id}">Shuffle day</button>
+            <button class="mini-btn" data-act="clear" data-day="${day.id}">Clear</button>
+          </div>
+        </div>
+        <div class="cats">
+          <div class="cat-block fiber">
+            <h3><span class="dot"></span>Fiber</h3>
+            <div class="opt-list" data-cat="fiber"></div>
+          </div>
+          <div class="cat-block protein">
+            <h3><span class="dot"></span>Protein</h3>
+            <div class="opt-list" data-cat="protein"></div>
+          </div>
+        </div>`;
+      const cats = card.querySelector('.cats');
+
+      const pools = {fiber: MASTER_FIBER, protein: MASTER_PROTEIN};
+      ["fiber","protein"].forEach(cat=>{
+        const listEl = cats.querySelector(`.opt-list[data-cat="${cat}"]`);
+        pools[cat].forEach((text, idx)=>{
+          const btn = document.createElement('button');
+          const isSel = sel[cat] === text;
+          btn.className = "opt" + (isSel? " selected":"");
+          btn.innerHTML = `<span class="num">${idx+1}</span><span>${escapeHtml(text)}</span><span class="check">✓</span>`;
+          btn.addEventListener('click', ()=>{
+            selections[day.id][cat] = (selections[day.id][cat]===text) ? null : text;
+            renderAll();
+          });
+          listEl.appendChild(btn);
+        });
+      });
+
+      card.querySelector('[data-act="shuffle"]').addEventListener('click', ()=>{
+        selections[day.id].fiber = MASTER_FIBER[Math.floor(Math.random()*MASTER_FIBER.length)];
+        selections[day.id].protein = MASTER_PROTEIN[Math.floor(Math.random()*MASTER_PROTEIN.length)];
+        renderAll();
+      });
+      card.querySelector('[data-act="clear"]').addEventListener('click', ()=>{
+        selections[day.id] = {fiber:null, protein:null};
+        renderAll();
+      });
+
+      wrap.appendChild(card);
+    }
+
+    document.getElementById('flPrevDay').addEventListener('click', ()=>{
+      if(currentDay>0){ currentDay--; renderAll(); }
+    });
+    document.getElementById('flNextDay').addEventListener('click', ()=>{
+      if(currentDay<DAYS.length-1){ currentDay++; renderAll(); }
+    });
+
+    function startEdit(span, day, cat){
+      const current = selections[day.id][cat] || "";
+      const input = document.createElement('input');
+      input.type = "text";
+      input.value = current;
+      input.placeholder = "Type a dish…";
+      span.replaceWith(input);
+      input.focus();
+      input.select();
+      function commit(){
+        const val = input.value.trim();
+        selections[day.id][cat] = val || null;
+        renderAll();
+      }
+      input.addEventListener('blur', commit);
+      input.addEventListener('keydown', (e)=>{
+        if(e.key==='Enter'){ e.preventDefault(); input.blur(); }
+        if(e.key==='Escape'){ e.preventDefault(); renderAll(); }
+      });
+    }
+
+    function renderReceipt(){
+      const body = document.getElementById('flRBody');
+      const sub = document.getElementById('flRSub');
+      const count = document.getElementById('flRCount');
+      body.innerHTML = "";
+      let complete = 0;
+      DAYS.forEach(day=>{
+        const sel = selections[day.id];
+        const row = document.createElement('div');
+        row.className = "rrow";
+        row.innerHTML = `<span class="rday">${day.label.slice(0,3)}</span><span class="rpicks"></span>`;
+        const picks = row.querySelector('.rpicks');
+
+        const fSpan = document.createElement('span');
+        fSpan.className = "val-edit " + (sel.fiber ? "fp" : "empty");
+        fSpan.textContent = sel.fiber || "—";
+        fSpan.title = "Click to type a dish"; fSpan.addEventListener('click', ()=> startEdit(fSpan, day, 'fiber'));
+        picks.appendChild(fSpan);
+        picks.appendChild(document.createElement('br'));
+        const pSpan = document.createElement('span');
+        pSpan.className = "val-edit " + (sel.protein ? "pp" : "empty");
+        pSpan.textContent = sel.protein || "—";
+        pSpan.title = "Click to type a dish"; pSpan.addEventListener('click', ()=> startEdit(pSpan, day, 'protein'));
+        picks.appendChild(pSpan);
+
+        body.appendChild(row);
+        if(sel.fiber && sel.protein) complete++;
+      });
+      sub.textContent = complete ? `— ${complete} of ${DAYS.length} days set —` : "— pick to fill - click to type —";
+      count.textContent = complete===DAYS.length ? "Full week planned ✓" : (DAYS.length-complete) + " day" + (DAYS.length-complete===1?"":"s") + " left to choose";
+    }
+
+    function fillWeekFull(){
+      const fiberPool = shuffled(MASTER_FIBER);
+      const proteinPool = shuffled(MASTER_PROTEIN);
+      DAYS.forEach((day,i)=>{
+        selections[day.id].fiber = fiberPool[i % fiberPool.length];
+        selections[day.id].protein = proteinPool[i % proteinPool.length];
+      });
+      renderAll();
+    }
+    document.getElementById('notSureBtnFull').addEventListener('click', fillWeekFull);
+    document.getElementById('flReceiptTitle').addEventListener('click', fillWeekFull);
+    document.getElementById('clearAllBtnFull').addEventListener('click', ()=>{
+      DAYS.forEach(day=> selections[day.id] = {fiber:null, protein:null});
+      renderAll();
+    });
+    document.getElementById('flCopyBtn').addEventListener('click', async ()=>{
+      let text = "This Week's Menu\n\n";
+      DAYS.forEach(day=>{
+        const sel = selections[day.id];
+        text += day.label + "\n  Fiber: " + (sel.fiber||"—") + "\n  Protein: " + (sel.protein||"—") + "\n\n";
+      });
+      const btn = document.getElementById('flCopyBtn');
+      try{
+        await navigator.clipboard.writeText(text);
+        const orig = btn.textContent;
+        btn.textContent = "Copied ✓";
+        setTimeout(()=>{ btn.textContent = orig; }, 1400);
+      }catch(err){
+        const orig = btn.textContent;
+        btn.textContent = "Couldn't copy";
+        setTimeout(()=>{ btn.textContent = orig; }, 1400);
+      }
+    });
+
+    function renderAll(){ renderDayTabs(); renderDays(); renderReceipt(); }
+    renderAll();
+  })();
+
+})();
+</script>
+
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./sw.js").catch((err) => {
+        console.warn("Service worker registration failed:", err);
+      });
+    });
+  }
+</script>
+</body>
+</html>
