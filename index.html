@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hôm nay nhà mình ăn gì nhỉ ?</title>
+<title>Hôm nay ăn gì?</title>
 
 <link rel="manifest" href="./manifest.json">
 <meta name="theme-color" content="#a3814f">
@@ -182,9 +182,9 @@
     <div class="main-col">
       <div class="frozen-top">
         <header class="board">
-          <p class="eyebrow">Hôm nay nhà mình ăn gì nhỉ ?</p>
+          <p class="eyebrow">Hôm nay ăn gì?</p>
           <h1 id="pageTitle">Pick your Fiber and Protein.</h1>
-          <p class="sub" id="pageSub">nhiều rau - ít thịt</p>
+          <p class="sub" id="pageSub" style="font-weight:700; color:#ffd166; letter-spacing:.02em;">nhiều rau - ít thịt</p>
         </header>
 
         <div class="controls-row">
@@ -291,7 +291,6 @@
     toolbarFull.classList.remove('hidden'); toolbarSet.classList.add('hidden');
     flNavRow.classList.remove('hidden'); scNavRow.classList.add('hidden');
     flReceipt.classList.remove('hidden'); scReceipt.classList.add('hidden');
-    pageTitle.innerHTML = "Build from the full list.";
   }
   tabBtnSet.addEventListener('click', showSet);
   tabBtnFull.addEventListener('click', showFull);
