@@ -1,7 +1,7 @@
 {
-  "name": "Weekly Meal Planner",
-  "short_name": "Meal Planner",
-  "description": "Pick your Fiber and Protein for every day of the week.",
+  "name": "Hôm nay nhà mình ăn gì nhỉ ?",
+  "short_name": "Ăn gì nhỉ?",
+  "description": "nhiều rau - ít thịt",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
