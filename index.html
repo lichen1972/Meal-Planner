@@ -901,6 +901,46 @@
       saveJSON(MASTER_LISTS_KEY, {fiber:MASTER_FIBER, protein:MASTER_PROTEIN});
     }
 
+    /* ================= Export Full List to Excel ================= */
+    let xlsxLoadPromise = null;
+    function loadSheetJS(){
+      if(window.XLSX) return Promise.resolve();
+      if(xlsxLoadPromise) return xlsxLoadPromise;
+      xlsxLoadPromise = new Promise((resolve, reject)=>{
+        const script = document.createElement('script');
+        script.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+        script.onload = ()=> resolve();
+        script.onerror = ()=> reject(new Error("Failed to load Excel export library"));
+        document.head.appendChild(script);
+      });
+      return xlsxLoadPromise;
+    }
+    async function exportFullListToExcel(){
+      const btn = document.getElementById('flExportBtn');
+      const originalText = btn.textContent;
+      btn.textContent = "Loading…";
+      btn.disabled = true;
+      try{
+        await loadSheetJS();
+        const rows = [["#","Fiber","Protein"]];
+        const maxLen = Math.max(MASTER_FIBER.length, MASTER_PROTEIN.length);
+        for(let i=0;i<maxLen;i++){
+          rows.push([i+1, MASTER_FIBER[i] || "", MASTER_PROTEIN[i] || ""]);
+        }
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+        ws['!cols'] = [{wch:4},{wch:40},{wch:40}];
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Full List");
+        const today = new Date().toISOString().slice(0,10);
+        XLSX.writeFile(wb, `full-list-${today}.xlsx`);
+      }catch(err){
+        alert("Couldn't export to Excel: " + err.message);
+      }finally{
+        btn.textContent = originalText;
+        btn.disabled = false;
+      }
+    }
+
     let selections = {};
     DAYS.forEach(d=> selections[d.id] = {fiber:null, protein:null});
     let currentDay = (new Date().getDay() + 6) % 7; // 0=Mon...6=Sun, defaults to today
@@ -933,6 +973,7 @@
           <div class="day-actions">
             <button class="mini-btn" data-act="shuffle" data-day="${day.id}">Shuffle day</button>
             <button class="mini-btn" data-act="clear" data-day="${day.id}">Clear</button>
+            <button class="mini-btn" id="flExportBtn">⬇ Export to Excel</button>
           </div>
         </div>
         <div class="cats">
@@ -1009,6 +1050,7 @@
         selections[day.id] = {fiber:null, protein:null};
         renderAll();
       });
+      card.querySelector('#flExportBtn').addEventListener('click', exportFullListToExcel);
 
       wrap.appendChild(card);
     }
