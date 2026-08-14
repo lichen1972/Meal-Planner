@@ -370,6 +370,27 @@
   </div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyDti1RRcmQgk0AfB4G0ryfJrwH06fBg5Uo",
+    authDomain: "meal-planner-20d37.firebaseapp.com",
+    projectId: "meal-planner-20d37",
+    storageBucket: "meal-planner-20d37.firebasestorage.app",
+    messagingSenderId: "504219478903",
+    appId: "1:504219478903:web:177f0d879da1637ffa0f72",
+    measurementId: "G-HYPSHFBL3W"
+  };
+  let db = null;
+  try{
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+  }catch(e){
+    console.warn("Firebase init failed, app will run in local-only mode:", e);
+  }
+</script>
+
 <script>
 (function(){
   "use strict";
@@ -425,6 +446,7 @@
     if(!key) return;
     if(dataUrl) dishPhotos[key] = dataUrl; else delete dishPhotos[key];
     try{ localStorage.setItem(PHOTO_KEY, JSON.stringify(dishPhotos)); }catch(e){ /* storage full, ignore */ }
+    cloudPush('dishPhotos', dishPhotos);
   }
   function applyPhotoEdit(oldName, newName, newPhoto){
     // newPhoto: undefined = unchanged, null = removed, string = new data URL
@@ -621,6 +643,34 @@
     try{ localStorage.setItem(key, JSON.stringify(value)); }catch(e){ /* storage full, ignore */ }
   }
 
+  /* ================= Cloud sync (Firestore, falls back to local-only if unavailable) ================= */
+  const cloudDocRef = (typeof db !== 'undefined' && db) ? db.collection('mealPlanner').doc('sharedData') : null;
+  let suppressNextSnapshot = false; // avoid immediately re-applying our own writes
+  function cloudPush(field, value){
+    if(!cloudDocRef) return;
+    suppressNextSnapshot = true;
+    cloudDocRef.set({ [field]: value }, { merge:true }).catch((err)=>{
+      console.warn('Cloud sync: failed to push', field, err);
+    });
+  }
+  function cloudListen(onData){
+    if(!cloudDocRef) return;
+    cloudDocRef.onSnapshot((snap)=>{
+      if(suppressNextSnapshot){ suppressNextSnapshot = false; return; }
+      const data = snap.data();
+      if(data) onData(data);
+    }, (err)=>{
+      console.warn('Cloud sync: listener error', err);
+    });
+  }
+  function cloudPullOnce(){
+    if(!cloudDocRef) return Promise.resolve(null);
+    return cloudDocRef.get().then((snap)=> snap.exists ? snap.data() : null).catch((err)=>{
+      console.warn('Cloud sync: initial pull failed', err);
+      return null;
+    });
+  }
+
   /* ================= TAB 1: Daily Set Menu ================= */
   (function(){
     const DAYS = [
@@ -664,11 +714,13 @@
       const out = {};
       DAYS.forEach(day=>{ out[day.id] = {fiber:day.fiber, protein:day.protein}; });
       saveJSON(DAILY_DISH_KEY, out);
+      cloudPush('dailyDishes', out);
     }
 
     let selections = {};
     DAYS.forEach(d=> selections[d.id] = {fiber:{idx:null,custom:null}, protein:{idx:null,custom:null}});
     let currentDay = (new Date().getDay() + 6) % 7; // 0=Mon...6=Sun, defaults to today
+    function pushSelections(){ cloudPush('selectionsTab1', selections); }
 
     function displayText(day, cat){
       const sel = selections[day.id][cat];
@@ -732,6 +784,7 @@
             const nowSelecting = !(cur.idx===idx && !cur.custom);
             selections[day.id][cat] = nowSelecting ? {idx:idx,custom:null} : {idx:null,custom:null};
             if(nowSelecting) showDishPhoto(text); else hideDishPhoto();
+            pushSelections();
             renderAll();
           });
           if(editMode){
@@ -756,10 +809,12 @@
       card.querySelector('[data-act="shuffle"]').addEventListener('click', ()=>{
         selections[day.id].fiber = {idx: Math.floor(Math.random()*6), custom:null};
         selections[day.id].protein = {idx: Math.floor(Math.random()*6), custom:null};
+        pushSelections();
         renderAll();
       });
       card.querySelector('[data-act="clear"]').addEventListener('click', ()=>{
         selections[day.id] = {fiber:{idx:null,custom:null}, protein:{idx:null,custom:null}};
+        pushSelections();
         renderAll();
       });
     }
@@ -783,6 +838,7 @@
       function commit(){
         const val = input.value.trim();
         selections[day.id][cat] = val ? {idx:null, custom:val} : {idx:null, custom:null};
+        pushSelections();
         renderAll();
       }
       input.addEventListener('blur', commit);
@@ -830,12 +886,14 @@
         selections[day.id].fiber = {idx: Math.floor(Math.random()*6), custom:null};
         selections[day.id].protein = {idx: Math.floor(Math.random()*6), custom:null};
       });
+      pushSelections();
       renderAll();
     }
     window.__fillTab1 = fillWeekSet;
     document.getElementById('scReceiptTitle').addEventListener('click', fillWeekSet);
     window.__clearTab1 = function(){
       DAYS.forEach(day=> selections[day.id] = {fiber:{idx:null,custom:null}, protein:{idx:null,custom:null}});
+      pushSelections();
       renderAll();
     };
     document.getElementById('scCopyBtn').addEventListener('click', async ()=>{
@@ -860,6 +918,24 @@
 
     function renderAll(){ renderDayTabs(); renderDays(); renderReceipt(); }
     window.__renderTab1 = renderAll;
+    window.__applyRemoteTab1 = function(data){
+      if(data.dailyDishes){
+        DAYS.forEach(day=>{
+          const d = data.dailyDishes[day.id];
+          if(d){
+            if(Array.isArray(d.fiber) && d.fiber.length===6) day.fiber = d.fiber;
+            if(Array.isArray(d.protein) && d.protein.length===6) day.protein = d.protein;
+          }
+        });
+        saveJSON(DAILY_DISH_KEY, data.dailyDishes);
+      }
+      if(data.selectionsTab1){
+        DAYS.forEach(day=>{
+          if(data.selectionsTab1[day.id]) selections[day.id] = data.selectionsTab1[day.id];
+        });
+      }
+      renderAll();
+    };
     renderAll();
   })();
 
@@ -899,6 +975,7 @@
     }
     function saveMasterLists(){
       saveJSON(MASTER_LISTS_KEY, {fiber:MASTER_FIBER, protein:MASTER_PROTEIN});
+      cloudPush('masterLists', {fiber:MASTER_FIBER, protein:MASTER_PROTEIN});
     }
 
     /* ================= Export Full List to Excel ================= */
@@ -944,6 +1021,7 @@
     let selections = {};
     DAYS.forEach(d=> selections[d.id] = {fiber:null, protein:null});
     let currentDay = (new Date().getDay() + 6) % 7; // 0=Mon...6=Sun, defaults to today
+    function pushSelections(){ cloudPush('selectionsTab2', selections); }
 
     function renderDayTabs(){
       const tabs = document.getElementById('flDayTabs');
@@ -1002,6 +1080,7 @@
             const nowSelecting = selections[day.id][cat] !== text;
             selections[day.id][cat] = nowSelecting ? text : null;
             if(nowSelecting) showDishPhoto(text); else hideDishPhoto();
+            pushSelections();
             renderAll();
           });
           if(editMode){
@@ -1044,10 +1123,12 @@
       card.querySelector('[data-act="shuffle"]').addEventListener('click', ()=>{
         selections[day.id].fiber = MASTER_FIBER[Math.floor(Math.random()*MASTER_FIBER.length)];
         selections[day.id].protein = MASTER_PROTEIN[Math.floor(Math.random()*MASTER_PROTEIN.length)];
+        pushSelections();
         renderAll();
       });
       card.querySelector('[data-act="clear"]').addEventListener('click', ()=>{
         selections[day.id] = {fiber:null, protein:null};
+        pushSelections();
         renderAll();
       });
       card.querySelector('#flExportBtn').addEventListener('click', exportFullListToExcel);
@@ -1074,6 +1155,7 @@
       function commit(){
         const val = input.value.trim();
         selections[day.id][cat] = val || null;
+        pushSelections();
         renderAll();
       }
       input.addEventListener('blur', commit);
@@ -1122,12 +1204,14 @@
         selections[day.id].fiber = fiberPool[i % fiberPool.length];
         selections[day.id].protein = proteinPool[i % proteinPool.length];
       });
+      pushSelections();
       renderAll();
     }
     window.__fillTab2 = fillWeekFull;
     document.getElementById('flReceiptTitle').addEventListener('click', fillWeekFull);
     window.__clearTab2 = function(){
       DAYS.forEach(day=> selections[day.id] = {fiber:null, protein:null});
+      pushSelections();
       renderAll();
     };
     document.getElementById('flCopyBtn').addEventListener('click', async ()=>{
@@ -1151,6 +1235,19 @@
 
     function renderAll(){ renderDayTabs(); renderDays(); renderReceipt(); }
     window.__renderTab2 = renderAll;
+    window.__applyRemoteTab2 = function(data){
+      if(data.masterLists){
+        if(Array.isArray(data.masterLists.fiber) && data.masterLists.fiber.length){ MASTER_FIBER.length = 0; MASTER_FIBER.push(...data.masterLists.fiber); }
+        if(Array.isArray(data.masterLists.protein) && data.masterLists.protein.length){ MASTER_PROTEIN.length = 0; MASTER_PROTEIN.push(...data.masterLists.protein); }
+        saveJSON(MASTER_LISTS_KEY, data.masterLists);
+      }
+      if(data.selectionsTab2){
+        DAYS.forEach(day=>{
+          if(data.selectionsTab2[day.id]) selections[day.id] = data.selectionsTab2[day.id];
+        });
+      }
+      renderAll();
+    };
     renderAll();
   })();
 
@@ -1173,6 +1270,24 @@
   window.addEventListener('load', syncReceiptHeight);
   syncReceiptHeight();
   setTimeout(syncReceiptHeight, 60);
+
+  /* ================= Cloud sync bootstrap ================= */
+  function applyRemoteData(data){
+    if(!data) return;
+    if(data.dishPhotos){
+      dishPhotos = data.dishPhotos;
+      try{ localStorage.setItem(PHOTO_KEY, JSON.stringify(dishPhotos)); }catch(e){}
+    }
+    if(window.__applyRemoteTab1) window.__applyRemoteTab1(data);
+    if(window.__applyRemoteTab2) window.__applyRemoteTab2(data);
+    if(window.__syncReceiptHeight) setTimeout(window.__syncReceiptHeight, 0);
+  }
+  cloudPullOnce().then((data)=>{
+    if(data) applyRemoteData(data);
+    // Start listening for changes from other devices AFTER the initial pull,
+    // so we don't immediately re-process the same data twice.
+    cloudListen(applyRemoteData);
+  });
 
 })();
 </script>
