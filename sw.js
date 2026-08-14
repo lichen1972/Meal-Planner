@@ -1,7 +1,8 @@
 // Weekly Meal Planner — offline cache
-// Bump CACHE_NAME any time index.html/manifest/icons change, so old
-// devices pick up the new version instead of serving stale files.
-const CACHE_NAME = "meal-planner-cache-v9";
+// NOTE: index.html is now served "network-first" (see fetch handler below),
+// so you do NOT need to bump CACHE_NAME just because index.html changed.
+// Only bump this if you rename/add/remove files in APP_SHELL below.
+const CACHE_NAME = "meal-planner-cache-v10";
 
 const APP_SHELL = [
   "./",
@@ -21,7 +22,7 @@ self.addEventListener("install", (event) => {
   self.skipWaiting();
 });
 
-// Activate: clean up any old cache versions.
+// Activate: clean up any old cache versions and take control immediately.
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
@@ -35,15 +36,37 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
-// Fetch: cache-first for same-origin app files, so the app opens instantly
-// offline. For cross-origin requests (Google Fonts, etc.), try the network
-// first and fall back to cache; if neither works, just let the request fail
-// quietly — the page's CSS already falls back to system fonts.
+// Fetch:
+// - HTML page (navigations, and index.html itself): NETWORK-FIRST.
+//   Always try to get the latest version. Only fall back to the cached
+//   copy if the network request fails (i.e. you're offline). This means
+//   deploying a new index.html shows up immediately on a normal reload —
+//   no more manual cache-version bumping, no more hard refresh needed.
+// - Other same-origin files (manifest, icons): CACHE-FIRST, since they
+//   rarely change and this keeps the app opening instantly offline.
+// - Cross-origin requests (Google Fonts, etc.): network-first, cache fallback.
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
   const isSameOrigin = url.origin === self.location.origin;
+  const isHTML =
+    event.request.mode === "navigate" ||
+    (event.request.headers.get("accept") || "").includes("text/html") ||
+    url.pathname.endsWith("/index.html") ||
+    url.pathname.endsWith("/");
 
-  if (isSameOrigin) {
+  if (isSameOrigin && isHTML) {
+    // Network-first for the page itself.
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          return response;
+        })
+        .catch(() => caches.match(event.request).then((cached) => cached || caches.match("./index.html")))
+    );
+  } else if (isSameOrigin) {
+    // Cache-first for other app-shell files (manifest, icons).
     event.respondWith(
       caches.match(event.request).then((cached) => {
         if (cached) return cached;
@@ -57,6 +80,7 @@ self.addEventListener("fetch", (event) => {
       })
     );
   } else {
+    // Cross-origin: network-first, cache fallback, fail quietly.
     event.respondWith(
       fetch(event.request)
         .then((response) => {
