@@ -440,13 +440,32 @@
   let dishPhotos = {};
   try{ dishPhotos = JSON.parse(localStorage.getItem(PHOTO_KEY) || '{}'); }catch(e){ dishPhotos = {}; }
   function normalizeName(n){ return (n||'').trim().toLowerCase(); }
+  // Firestore document IDs can't contain "/" (common in dish names like "Cải bắp / Cải tím")
+  // and have other restrictions, so hash the name into a safe, stable, short ID.
+  function hashKey(str){
+    let h = 5381;
+    for(let i=0;i<str.length;i++){ h = ((h*33) ^ str.charCodeAt(i)) >>> 0; }
+    return 'p' + h.toString(36);
+  }
   function getPhoto(name){ return dishPhotos[normalizeName(name)] || null; }
   function setPhoto(name, dataUrl){
     const key = normalizeName(name);
     if(!key) return;
     if(dataUrl) dishPhotos[key] = dataUrl; else delete dishPhotos[key];
     try{ localStorage.setItem(PHOTO_KEY, JSON.stringify(dishPhotos)); }catch(e){ /* storage full, ignore */ }
-    cloudPush('dishPhotos', dishPhotos);
+    // Each photo gets its OWN Firestore document (not crammed into the shared
+    // settings doc) since Firestore caps documents at 1MB and photos alone can
+    // easily exceed that if bundled together with everything else.
+    if(cloudPhotosCol){
+      const docId = hashKey(key);
+      if(dataUrl){
+        cloudPhotosCol.doc(docId).set({ name:key, photo:dataUrl }).catch((err)=>{
+          console.warn('Cloud sync: photo upload failed (may be too large)', key, err);
+        });
+      }else{
+        cloudPhotosCol.doc(docId).delete().catch(()=>{});
+      }
+    }
   }
   function applyPhotoEdit(oldName, newName, newPhoto){
     // newPhoto: undefined = unchanged, null = removed, string = new data URL
@@ -521,8 +540,34 @@
   function readFileAsDataUrl(file, cb){
     if(!file || file.type.indexOf('image') !== 0) return;
     const reader = new FileReader();
-    reader.onload = ()=> cb(reader.result);
+    reader.onload = ()=> compressImage(reader.result, cb);
     reader.readAsDataURL(file);
+  }
+  // Resize/compress to keep each photo well under Firestore's 1MB document limit
+  // (also makes photos load noticeably faster in the app).
+  function compressImage(dataUrl, cb, maxDim, quality){
+    maxDim = maxDim || 900;
+    quality = quality || 0.72;
+    const img = new Image();
+    img.onload = ()=>{
+      let { width, height } = img;
+      if(width > maxDim || height > maxDim){
+        if(width >= height){ height = Math.round(height * (maxDim/width)); width = maxDim; }
+        else{ width = Math.round(width * (maxDim/height)); height = maxDim; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      let out = canvas.toDataURL('image/jpeg', quality);
+      // If still too large (e.g. very busy image), compress harder once more.
+      if(out.length > 700000 && quality > 0.4){
+        out = canvas.toDataURL('image/jpeg', 0.4);
+      }
+      cb(out);
+    };
+    img.onerror = ()=> cb(dataUrl); // fall back to original if it fails to load as an <img>
+    img.src = dataUrl;
   }
   let dmState = { photoDataUrl: undefined, originalName: '', onSave: null };
   function ensureModalRoot(){
@@ -645,6 +690,7 @@
 
   /* ================= Cloud sync (Firestore, falls back to local-only if unavailable) ================= */
   const cloudDocRef = (typeof db !== 'undefined' && db) ? db.collection('mealPlanner').doc('sharedData') : null;
+  const cloudPhotosCol = (typeof db !== 'undefined' && db) ? db.collection('dishPhotos') : null;
   let suppressNextSnapshot = false; // avoid immediately re-applying our own writes
   function cloudPush(field, value){
     if(!cloudDocRef) return;
@@ -668,6 +714,29 @@
     return cloudDocRef.get().then((snap)=> snap.exists ? snap.data() : null).catch((err)=>{
       console.warn('Cloud sync: initial pull failed', err);
       return null;
+    });
+  }
+  // Photos live in their own collection (one small doc per photo) instead of the
+  // shared settings doc, since Firestore caps each document at 1MB.
+  function cloudPullPhotosOnce(){
+    if(!cloudPhotosCol) return Promise.resolve(null);
+    return cloudPhotosCol.get().then((qs)=>{
+      const out = {};
+      qs.forEach((doc)=>{ const d = doc.data(); if(d && d.name) out[d.name] = d.photo; });
+      return out;
+    }).catch((err)=>{
+      console.warn('Cloud sync: initial photo pull failed', err);
+      return null;
+    });
+  }
+  function cloudListenPhotos(onPhotos){
+    if(!cloudPhotosCol) return;
+    cloudPhotosCol.onSnapshot((qs)=>{
+      const out = {};
+      qs.forEach((doc)=>{ const d = doc.data(); if(d && d.name) out[d.name] = d.photo; });
+      onPhotos(out);
+    }, (err)=>{
+      console.warn('Cloud sync: photo listener error', err);
     });
   }
 
@@ -1274,19 +1343,26 @@
   /* ================= Cloud sync bootstrap ================= */
   function applyRemoteData(data){
     if(!data) return;
-    if(data.dishPhotos){
-      dishPhotos = data.dishPhotos;
-      try{ localStorage.setItem(PHOTO_KEY, JSON.stringify(dishPhotos)); }catch(e){}
-    }
     if(window.__applyRemoteTab1) window.__applyRemoteTab1(data);
     if(window.__applyRemoteTab2) window.__applyRemoteTab2(data);
     if(window.__syncReceiptHeight) setTimeout(window.__syncReceiptHeight, 0);
+  }
+  function applyRemotePhotos(photos){
+    if(!photos) return;
+    dishPhotos = photos;
+    try{ localStorage.setItem(PHOTO_KEY, JSON.stringify(dishPhotos)); }catch(e){}
+    if(window.__renderTab1) window.__renderTab1();
+    if(window.__renderTab2) window.__renderTab2();
   }
   cloudPullOnce().then((data)=>{
     if(data) applyRemoteData(data);
     // Start listening for changes from other devices AFTER the initial pull,
     // so we don't immediately re-process the same data twice.
     cloudListen(applyRemoteData);
+  });
+  cloudPullPhotosOnce().then((photos)=>{
+    if(photos) applyRemotePhotos(photos);
+    cloudListenPhotos(applyRemotePhotos);
   });
 
 })();
