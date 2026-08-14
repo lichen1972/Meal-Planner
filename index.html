@@ -31,9 +31,9 @@
     content:""; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:0.05; mix-blend-mode:multiply;
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
-  .wrap{ position:relative; z-index:1; max-width:1180px; margin:0 auto; padding:28px 20px 80px; }
+  .wrap{ position:relative; z-index:1; max-width:1180px; margin:0 auto; padding:28px 20px 80px; zoom:0.9; }
 
-  .layout{ display:grid; grid-template-columns:1fr 300px; gap:22px; align-items:start; }
+  .layout{ display:grid; grid-template-columns:1fr 300px; gap:22px; align-items:stretch; }
   @media (max-width:940px){ .layout{ grid-template-columns:1fr; } }
   .main-col{ min-width:0; }
   .frozen-top{
@@ -54,33 +54,52 @@
   .sub{ font-family:'IBM Plex Mono',monospace; color:rgba(255,253,246,0.82); font-size:12.5px; letter-spacing:.04em; max-width:560px; margin:0; }
 
   /* controls row: tab switcher + action buttons, side by side below the header */
-  .controls-row{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin:0 0 18px; }
+  .controls-row{ display:flex; align-items:center; justify-content:center; gap:12px; flex-wrap:wrap; margin:0 0 18px; zoom:0.95; }
 
-  /* tab switcher */
-  .tabswitch{ display:inline-flex; flex-shrink:0; background:var(--paper); border:1px solid var(--line); border-radius:22px; padding:4px; gap:3px; box-shadow:0 4px 10px var(--shadow); }
-  .tabswitch button{
-    font-family:'Inter',sans-serif; font-weight:600; font-size:13px; line-height:1.2; border:1.5px solid transparent; background:none;
-    color:var(--ink-soft); padding:9px 16px; border-radius:18px; cursor:pointer; text-align:center;
-    white-space:nowrap; flex-shrink:0;
-    transition:background .15s,color .15s,border-color .15s;
+  /* unified button cluster: tab name + its actions, grouped together */
+  .seg-group{
+    display:inline-flex; flex-shrink:0; flex-wrap:wrap;
+    gap:10px; padding:14px; border-radius:36px; white-space:nowrap;
+    /* the glow itself: bright center fading to transparent */
+    background: radial-gradient(
+      ellipse at center,
+      rgba(255, 252, 240, 0.95) 0%,
+      rgba(255, 252, 240, 0.55) 45%,
+      rgba(255, 252, 240, 0) 78%
+    );
+    /* two-layer bloom: tight bright core + soft outer haze */
+    box-shadow:
+      0 0 14px 2px rgba(255, 253, 245, 0.7),
+      0 0 40px 14px rgba(255, 250, 235, 0.35);
   }
-  .tabswitch button.active{ background:var(--paper); border-color:var(--ink); color:var(--ink); font-weight:700; }
-  .tabswitch button:focus-visible{ outline:2px solid var(--ink); outline-offset:2px; }
+  .seg{
+    font-family:'Inter',sans-serif; height:52px; padding:0 20px; border:none; border-radius:26px;
+    font-weight:700; font-size:15px; line-height:52px; background:#A98253; color:#FFFFFF;
+    cursor:pointer; text-align:center; white-space:nowrap; transition:filter .15s,background .15s; flex-shrink:0;
+  }
+  .seg:hover{ filter:brightness(1.08); }
+  .seg:focus-visible{ outline:2px solid var(--ink); outline-offset:2px; }
+  .seg.tab-active{ background:#8a6a41; }
+  .seg.seg-hero{ background:#A98253; }
+  .seg.seg-danger{ background:#C0392B; }
+  .seg.seg-full{ background:#A98253; }
+  .seg.seg-full.tab-active{ background:#8a6a41; }
+  .seg.seg-editing{ background:var(--fiber-deep); }
 
   .toolbar{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; flex-shrink:0; }
-  .btn{ font-family:'Inter',sans-serif; font-weight:600; font-size:13.5px; border:none; border-radius:3px; padding:10px 18px; cursor:pointer; transition:transform .1s, filter .15s, background .15s; white-space:nowrap; flex-shrink:0; }
+  .btn{ font-family:'Inter',sans-serif; font-weight:600; font-size:13.5px; border:1.5px solid transparent; border-radius:10px; padding:9.5px 18px; cursor:pointer; transition:transform .1s, filter .15s, background .15s, border-color .15s; white-space:nowrap; flex-shrink:0; line-height:1.2; }
   .btn:active{ transform:translateY(1px); }
   .btn:focus-visible{ outline:2px solid var(--ink); }
-  .btn-hero{ background:var(--protein); color:var(--paper); font-size:14.5px; padding:11px 20px; box-shadow:0 4px 10px rgba(0,0,0,0.25); }
+  .btn-hero{ background:var(--protein); color:var(--paper); border-color:var(--protein); box-shadow:0 4px 10px rgba(0,0,0,0.25); }
   .btn-hero:hover{ filter:brightness(1.08); }
-  .btn-ghost{ background:rgba(255,253,246,0.6); color:var(--ink); border:1px solid var(--kraft-deep); }
-  .btn-ghost:hover{ background:var(--paper); }
+  .btn-ghost{ background:var(--paper); color:var(--ink); border-color:var(--line); }
+  .btn-ghost:hover{ border-color:var(--ink-soft); }
 
   .days{ display:flex; flex-direction:column; gap:14px; }
 
   /* day quick-pick tabs + nav arrows, all in one row */
-  .day-nav-row{ display:flex; align-items:center; gap:16px; margin-bottom:14px; }
-  .day-tabs{ display:flex; gap:22px; flex-wrap:wrap; flex:1; }
+  .day-nav-row{ display:flex; align-items:center; gap:16px; margin-bottom:14px; zoom:0.95; }
+  .day-tabs{ display:flex; gap:22px; flex-wrap:wrap; flex:1; justify-content:center; }
   .day-tab{
     background:none; border:none; cursor:pointer; padding:4px 1px;
     font-family:'Inter',sans-serif; font-weight:700; font-size:15px;
@@ -140,8 +159,12 @@
   .protein .opt.selected .check{ color:var(--protein-deep); }
 
   /* ---------- Summary receipt ---------- */
-  .receipt-col{ position:sticky; top:20px; }
-  .receipt{ background:var(--paper); box-shadow:0 8px 20px var(--shadow); padding:0 16px 15px; }
+  .receipt-col{ position:sticky; top:20px; display:flex; flex-direction:column; }
+  .receipt{
+    background:var(--paper); padding:0 16px 15px; display:flex; flex-direction:column; flex:1; min-height:0;
+    border-radius:16px; overflow:hidden;
+    box-shadow:0 10px 26px rgba(43,33,24,0.28), 0 0 46px 6px rgba(255,253,246,0.4);
+  }
   .receipt-zig{ height:12px; background:linear-gradient(-45deg,var(--kraft) 6px,transparent 0) 0 0/12px 12px, linear-gradient(45deg,var(--kraft) 6px,transparent 0) 0 0/12px 12px; background-color:var(--paper); }
   .receipt-zig.bottom{ transform:rotate(180deg); }
   .receipt-head{ text-align:center; padding:12px 0 9px; border-bottom:1px dashed var(--line); }
@@ -165,15 +188,92 @@
     border:1px solid var(--ink-soft); border-radius:3px; padding:2px 5px; color:var(--ink); background:var(--paper);
   }
   .receipt-count{ text-align:center; font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink-soft); margin-top:9px; }
-  .receipt-actions{ margin-top:11px; display:flex; gap:8px; }
+  .receipt-actions{ margin-top:auto; padding-top:11px; display:flex; gap:8px; }
   .receipt-actions .btn{ flex:1; font-size:12px; padding:7px 10px; }
   .btn-outline{ background:none; border:1px solid var(--ink-soft); color:var(--ink); }
   .btn-outline:hover{ background:var(--ink); color:var(--paper); }
+  .credit{ position:fixed; right:14px; bottom:12px; margin:0; font-family:'Inter',sans-serif; font-weight:700; font-size:12px; color:var(--ink); opacity:0.28; letter-spacing:.02em; z-index:50; pointer-events:none; zoom:0.9; }
 
-  footer.note{ text-align:center; margin-top:26px; font-family:'IBM Plex Mono',monospace; font-size:11px; color:rgba(43,33,24,0.55); }
+  footer.note{ text-align:center; margin-top:26px; font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:rgba(43,33,24,0.82); font-weight:600; }
 
   .hidden{ display:none !important; }
   @media (prefers-reduced-motion:reduce){ *{ transition:none !important; } }
+
+  /* ---------- Header photo box ---------- */
+  .board-row{ display:flex; align-items:flex-start; justify-content:space-between; gap:18px; flex-wrap:wrap; }
+  .board-text{ min-width:0; flex:1; }
+  .board-photo{
+    width:190px; height:142px; flex-shrink:0; border-radius:6px; overflow:hidden; position:relative;
+    background:rgba(0,0,0,0.15); border:1.5px solid rgba(255,253,246,0.35);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .board-photo img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .board-photo-empty{
+    display:flex; flex-direction:column; align-items:center; gap:6px; text-align:center; padding:0 12px;
+    font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:rgba(255,253,246,0.55); line-height:1.4;
+  }
+  .board-photo-empty .icon{ font-size:22px; opacity:0.6; }
+  .board-photo-name{
+    position:absolute; left:0; right:0; bottom:0; background:rgba(43,33,24,0.6); color:var(--paper);
+    font-family:'IBM Plex Mono',monospace; font-size:10px; padding:3px 8px; text-align:center;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  @media (max-width:640px){ .board-photo{ width:120px; height:96px; } .board-photo-empty{ font-size:9.5px; } }
+
+  /* ---------- Header search box ---------- */
+  .search-wrap{ position:relative; margin-top:12px; max-width:420px; }
+  .search-icon{ position:absolute; left:12px; top:50%; transform:translateY(-50%); font-size:13px; opacity:0.6; pointer-events:none; }
+  .search-input{
+    width:100%; font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:.03em;
+    background:rgba(255,253,246,0.38); border:1.5px solid rgba(255,253,246,0.7); border-radius:6px;
+    padding:10px 34px; color:var(--ink);
+  }
+  .search-input::placeholder{ color:rgba(43,33,24,0.55); letter-spacing:.14em; text-transform:uppercase; }
+  .search-input:focus{ outline:none; border-color:var(--paper); background:rgba(255,253,246,0.5); }
+  .search-clear{
+    position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer;
+    color:rgba(43,33,24,0.6); font-size:12px; padding:4px 6px; border-radius:50%;
+  }
+  .search-clear:hover{ color:var(--ink); background:rgba(43,33,24,0.1); }
+  .opt.search-miss{ display:none !important; }
+
+  /* ---------- Edit / add affordances on dish chips ---------- */
+  .opt{ position:relative; }
+  .opt .opt-text{ flex:1; }
+  .opt-edit{
+    flex-shrink:0; font-size:11.5px; color:var(--ink-soft); padding:2px 5px; border-radius:3px; margin-left:4px;
+  }
+  .opt-edit:hover{ background:rgba(43,33,24,0.08); color:var(--ink); }
+  .opt-thumb{ width:20px; height:20px; border-radius:3px; object-fit:cover; flex-shrink:0; }
+  .opt-add{ border-style:dashed; color:var(--ink-soft); justify-content:center; font-weight:600; }
+  .opt-add:hover{ color:var(--ink); border-color:var(--ink-soft); }
+
+  /* ---------- Dish edit modal ---------- */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(20,15,10,0.55); z-index:200;
+    display:flex; align-items:center; justify-content:center; padding:20px;
+  }
+  .modal-box{
+    background:var(--paper); border-radius:6px; width:min(420px,100%); padding:20px 20px 18px;
+    box-shadow:0 20px 50px rgba(0,0,0,0.4); zoom:0.9;
+  }
+  .modal-box h3{ font-family:'Fraunces',serif; margin:0 0 14px; font-size:18px; }
+  .modal-label{ display:block; font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-soft); margin:0 0 6px; }
+  .modal-input{
+    width:100%; font-family:'Inter',sans-serif; font-size:14px; padding:9px 10px; border:1.5px solid var(--line);
+    border-radius:5px; color:var(--ink); margin-bottom:14px; background:var(--paper);
+  }
+  .modal-input:focus{ outline:none; border-color:var(--ink-soft); }
+  .modal-photo-drop{
+    height:140px; border:1.5px dashed var(--line); border-radius:6px; cursor:pointer; margin-bottom:12px;
+    display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative; background:var(--fiber-bg);
+  }
+  .modal-photo-drop:hover{ border-color:var(--ink-soft); }
+  .modal-photo-drop img{ width:100%; height:100%; object-fit:cover; }
+  #dmPhotoPlaceholder{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink-soft); text-align:center; padding:0 16px; line-height:1.5; }
+  .modal-actions{ display:flex; align-items:center; gap:8px; }
+  .modal-actions .btn{ padding:8px 14px; font-size:13px; }
+
 </style>
 </head>
 <body>
@@ -182,23 +282,34 @@
     <div class="main-col">
       <div class="frozen-top">
         <header class="board">
-          <p class="eyebrow">Hôm nay ăn gì?</p>
-          <h1 id="pageTitle">Pick your Fiber and Protein.</h1>
-          <p class="sub" id="pageSub" style="font-weight:700; color:#ffd166; letter-spacing:.02em;">nhiều rau - ít thịt</p>
+          <div class="board-row">
+            <div class="board-text">
+              <p class="eyebrow">Hôm nay ăn gì?</p>
+              <h1 id="pageTitle">Pick your Fiber and Protein.</h1>
+              <p class="sub" id="pageSub" style="font-weight:700; color:#ffd166; letter-spacing:.02em;">nhiều rau - ít thịt</p>
+              <div class="search-wrap">
+                <span class="search-icon">🔎</span>
+                <input type="text" id="dishSearch" class="search-input" placeholder="SEARCH" autocomplete="off">
+                <button class="search-clear hidden" id="dishSearchClear" title="Clear search">✕</button>
+              </div>
+            </div>
+            <div class="board-photo" id="boardPhoto">
+              <img id="boardPhotoImg" class="hidden" alt="">
+              <div class="board-photo-empty" id="boardPhotoEmpty"><span class="icon">📷</span><span>Chọn món để xem ảnh</span></div>
+              <div class="board-photo-name" id="boardPhotoName"></div>
+            </div>
+          </div>
         </header>
 
         <div class="controls-row">
-          <div class="tabswitch" role="tablist">
-            <button id="tabBtnSet" class="active" role="tab" aria-selected="true">Daily Set Menu</button>
-            <button id="tabBtnFull" role="tab" aria-selected="false">Full List Builder</button>
+          <div class="seg-group" id="groupSet" role="tablist">
+            <button id="tabBtnSet" class="seg tab-active" role="tab" aria-selected="true">Let me select</button>
+            <button id="notSureBtnSet" class="seg seg-hero">I am not sure</button>
+            <button id="clearAllBtnSet" class="seg seg-danger">🗑 Clear all</button>
           </div>
-          <div class="toolbar" id="toolbarSet">
-            <button class="btn btn-hero" id="notSureBtnSet">🤔 I am not sure</button>
-            <button class="btn btn-ghost" id="clearAllBtnSet">Clear all</button>
-          </div>
-          <div class="toolbar hidden" id="toolbarFull">
-            <button class="btn btn-hero" id="notSureBtnFull">🤔 I am not sure</button>
-            <button class="btn btn-ghost" id="clearAllBtnFull">Clear all</button>
+          <div class="seg-group" id="groupFull">
+            <button id="tabBtnFull" class="seg seg-full" role="tab" aria-selected="false">Full list</button>
+            <button id="editModeBtn" class="seg seg-full" title="Unlock dish editing">🔒 Updates</button>
           </div>
         </div>
 
@@ -254,6 +365,7 @@
         </div>
         <div class="receipt-zig bottom"></div>
       </div>
+      <p class="credit">Built by Cuong.nl</p>
     </div>
   </div>
 </div>
@@ -267,8 +379,9 @@
   const tabBtnFull = document.getElementById('tabBtnFull');
   const tabSetChoices = document.getElementById('tabSetChoices');
   const tabFullList = document.getElementById('tabFullList');
-  const toolbarSet = document.getElementById('toolbarSet');
-  const toolbarFull = document.getElementById('toolbarFull');
+  const notSureBtnSet = document.getElementById('notSureBtnSet');
+  const clearAllBtnSet = document.getElementById('clearAllBtnSet');
+  const editModeBtnEl = document.getElementById('editModeBtn');
   const scNavRow = document.getElementById('scNavRow');
   const flNavRow = document.getElementById('flNavRow');
   const scReceipt = document.getElementById('scReceipt');
@@ -276,19 +389,18 @@
   const pageTitle = document.getElementById('pageTitle');
 
   function showSet(){
-    tabBtnSet.classList.add('active'); tabBtnSet.setAttribute('aria-selected','true');
-    tabBtnFull.classList.remove('active'); tabBtnFull.setAttribute('aria-selected','false');
+    tabBtnSet.setAttribute('aria-selected','true');
+    tabBtnFull.classList.remove('tab-active'); tabBtnFull.setAttribute('aria-selected','false');
     tabSetChoices.classList.remove('hidden'); tabFullList.classList.add('hidden');
-    toolbarSet.classList.remove('hidden'); toolbarFull.classList.add('hidden');
     scNavRow.classList.remove('hidden'); flNavRow.classList.add('hidden');
     scReceipt.classList.remove('hidden'); flReceipt.classList.add('hidden');
     pageTitle.innerHTML = "Pick your Fiber and Protein.";
+    if(window.__syncReceiptHeight) setTimeout(window.__syncReceiptHeight, 0);
   }
   function showFull(){
-    tabBtnFull.classList.add('active'); tabBtnFull.setAttribute('aria-selected','true');
-    tabBtnSet.classList.remove('active'); tabBtnSet.setAttribute('aria-selected','false');
+    tabBtnFull.classList.add('tab-active'); tabBtnFull.setAttribute('aria-selected','true');
+    tabBtnSet.setAttribute('aria-selected','false');
     tabFullList.classList.remove('hidden'); tabSetChoices.classList.add('hidden');
-    toolbarFull.classList.remove('hidden'); toolbarSet.classList.add('hidden');
     flNavRow.classList.remove('hidden'); scNavRow.classList.add('hidden');
     flReceipt.classList.remove('hidden'); scReceipt.classList.add('hidden');
   }
@@ -300,6 +412,213 @@
     const a = arr.slice();
     for(let i=a.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
     return a;
+  }
+
+  /* ================= Dish photos (shared across both tabs) ================= */
+  const PHOTO_KEY = 'mealPlannerDishPhotos_v1';
+  let dishPhotos = {};
+  try{ dishPhotos = JSON.parse(localStorage.getItem(PHOTO_KEY) || '{}'); }catch(e){ dishPhotos = {}; }
+  function normalizeName(n){ return (n||'').trim().toLowerCase(); }
+  function getPhoto(name){ return dishPhotos[normalizeName(name)] || null; }
+  function setPhoto(name, dataUrl){
+    const key = normalizeName(name);
+    if(!key) return;
+    if(dataUrl) dishPhotos[key] = dataUrl; else delete dishPhotos[key];
+    try{ localStorage.setItem(PHOTO_KEY, JSON.stringify(dishPhotos)); }catch(e){ /* storage full, ignore */ }
+  }
+  function applyPhotoEdit(oldName, newName, newPhoto){
+    // newPhoto: undefined = unchanged, null = removed, string = new data URL
+    const finalPhoto = (newPhoto === undefined) ? getPhoto(oldName) : newPhoto;
+    if(oldName && oldName !== newName) setPhoto(oldName, null);
+    setPhoto(newName, finalPhoto);
+  }
+
+  /* ================= Header photo box ================= */
+  function showDishPhoto(name){
+    const img = document.getElementById('boardPhotoImg');
+    const empty = document.getElementById('boardPhotoEmpty');
+    const label = document.getElementById('boardPhotoName');
+    const photo = getPhoto(name);
+    label.textContent = name || '';
+    if(photo){
+      img.src = photo; img.classList.remove('hidden'); empty.classList.add('hidden');
+    }else{
+      img.classList.add('hidden'); empty.classList.remove('hidden');
+      empty.querySelector('span:last-child').textContent = name ? ("Chưa có ảnh — " + name) : "Chọn món để xem ảnh";
+    }
+  }
+  function hideDishPhoto(){
+    const img = document.getElementById('boardPhotoImg');
+    const empty = document.getElementById('boardPhotoEmpty');
+    const label = document.getElementById('boardPhotoName');
+    img.classList.add('hidden'); label.textContent = '';
+    empty.classList.remove('hidden');
+    empty.querySelector('span:last-child').textContent = "Chọn món để xem ảnh";
+  }
+
+  /* ================= Edit mode (password gated) ================= */
+  let editMode = false;
+  const EDIT_PASSWORD = 'jjj';
+  function refreshEditModeUI(){
+    const btn = document.getElementById('editModeBtn');
+    if(!btn) return;
+    btn.textContent = editMode ? "🔓 Updates on" : "🔒 Updates";
+    btn.classList.toggle('seg-editing', editMode);
+  }
+  function rerenderTabs(){
+    if(window.__renderTab1) window.__renderTab1();
+    if(window.__renderTab2) window.__renderTab2();
+  }
+
+  /* ================= Clear all / I am not sure (route to whichever tab is active) ================= */
+  document.getElementById('clearAllBtnSet').addEventListener('click', ()=>{
+    const fullActive = !document.getElementById('tabFullList').classList.contains('hidden');
+    if(fullActive){ if(window.__clearTab2) window.__clearTab2(); }
+    else{ if(window.__clearTab1) window.__clearTab1(); }
+  });
+  document.getElementById('notSureBtnSet').addEventListener('click', ()=>{
+    const fullActive = !document.getElementById('tabFullList').classList.contains('hidden');
+    if(fullActive){ if(window.__fillTab2) window.__fillTab2(); }
+    else{ if(window.__fillTab1) window.__fillTab1(); }
+  });
+
+  document.getElementById('editModeBtn').addEventListener('click', ()=>{
+    if(editMode){
+      editMode = false;
+    }else{
+      const pass = prompt("Enter password to edit dishes:");
+      if(pass === null) return;
+      if(pass === EDIT_PASSWORD){ editMode = true; }
+      else{ alert("Incorrect password."); }
+    }
+    refreshEditModeUI();
+    rerenderTabs();
+  });
+
+  /* ================= Dish editor modal ================= */
+  function readFileAsDataUrl(file, cb){
+    if(!file || file.type.indexOf('image') !== 0) return;
+    const reader = new FileReader();
+    reader.onload = ()=> cb(reader.result);
+    reader.readAsDataURL(file);
+  }
+  let dmState = { photoDataUrl: undefined, originalName: '', onSave: null };
+  function ensureModalRoot(){
+    let m = document.getElementById('dishModalOverlay');
+    if(m) return m;
+    m = document.createElement('div');
+    m.id = 'dishModalOverlay';
+    m.className = 'modal-overlay hidden';
+    m.innerHTML =
+      '<div class="modal-box">' +
+        '<h3 id="dmTitle">Edit dish</h3>' +
+        '<label class="modal-label">Dish name</label>' +
+        '<input type="text" id="dmName" class="modal-input" placeholder="Dish name">' +
+        '<label class="modal-label">Photo</label>' +
+        '<div class="modal-photo-drop" id="dmPhotoDrop" tabindex="0">' +
+          '<img id="dmPhotoPreview" class="hidden" alt="">' +
+          '<div id="dmPhotoPlaceholder">Click to upload, or paste (Ctrl+V) an image</div>' +
+        '</div>' +
+        '<input type="file" id="dmFileInput" accept="image/*" class="hidden">' +
+        '<div class="modal-actions">' +
+          '<button class="btn btn-ghost" id="dmRemovePhoto">Remove photo</button>' +
+          '<div style="flex:1"></div>' +
+          '<button class="btn btn-ghost" id="dmCancel">Cancel</button>' +
+          '<button class="btn btn-hero" id="dmSave">Save</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(m);
+
+    const img = document.getElementById('dmPhotoPreview');
+    const ph = document.getElementById('dmPhotoPlaceholder');
+    function setPreview(dataUrl){
+      if(dataUrl){ img.src = dataUrl; img.classList.remove('hidden'); ph.classList.add('hidden'); }
+      else{ img.classList.add('hidden'); ph.classList.remove('hidden'); }
+    }
+    document.getElementById('dmPhotoDrop').addEventListener('click', ()=>{
+      document.getElementById('dmFileInput').click();
+    });
+    document.getElementById('dmFileInput').addEventListener('change', (e)=>{
+      const file = e.target.files[0];
+      readFileAsDataUrl(file, (dataUrl)=>{ dmState.photoDataUrl = dataUrl; setPreview(dataUrl); });
+    });
+    document.getElementById('dmRemovePhoto').addEventListener('click', ()=>{
+      dmState.photoDataUrl = null; setPreview(null);
+    });
+    document.getElementById('dmCancel').addEventListener('click', closeDishEditor);
+    m.addEventListener('click', (e)=>{ if(e.target === m) closeDishEditor(); });
+    document.addEventListener('keydown', (e)=>{
+      if(e.key === 'Escape' && !m.classList.contains('hidden')) closeDishEditor();
+    });
+    document.getElementById('dmSave').addEventListener('click', ()=>{
+      const name = document.getElementById('dmName').value.trim();
+      if(!name){ alert("Please enter a dish name."); return; }
+      const cb = dmState.onSave;
+      const photo = dmState.photoDataUrl;
+      closeDishEditor();
+      if(cb) cb(name, photo);
+    });
+    document.addEventListener('paste', (e)=>{
+      if(m.classList.contains('hidden')) return;
+      const items = (e.clipboardData && e.clipboardData.items) || [];
+      for(let i=0;i<items.length;i++){
+        if(items[i].type && items[i].type.indexOf('image')===0){
+          const file = items[i].getAsFile();
+          readFileAsDataUrl(file, (dataUrl)=>{ dmState.photoDataUrl = dataUrl; setPreview(dataUrl); });
+          e.preventDefault();
+          break;
+        }
+      }
+    });
+    return m;
+  }
+  function closeDishEditor(){
+    const m = document.getElementById('dishModalOverlay');
+    if(m) m.classList.add('hidden');
+  }
+  function openDishEditor(opts, onSave){
+    const m = ensureModalRoot();
+    const name = opts.name || '';
+    dmState = { photoDataUrl: undefined, originalName: name, onSave: onSave };
+    document.getElementById('dmTitle').textContent = opts.isNew ? "Add dish" : "Edit dish";
+    document.getElementById('dmName').value = name;
+    const existing = name ? getPhoto(name) : null;
+    const img = document.getElementById('dmPhotoPreview');
+    const ph = document.getElementById('dmPhotoPlaceholder');
+    if(existing){ img.src = existing; img.classList.remove('hidden'); ph.classList.add('hidden'); dmState.photoDataUrl = existing; }
+    else{ img.classList.add('hidden'); ph.classList.remove('hidden'); }
+    m.classList.remove('hidden');
+    setTimeout(()=>{ const inp = document.getElementById('dmName'); inp.focus(); inp.select(); }, 30);
+  }
+
+  /* ================= Dish search ================= */
+  let searchTerm = '';
+  function matchesSearch(text){
+    if(!searchTerm) return true;
+    return normalizeName(text).includes(searchTerm);
+  }
+  const dishSearchInput = document.getElementById('dishSearch');
+  const dishSearchClear = document.getElementById('dishSearchClear');
+  dishSearchInput.addEventListener('input', ()=>{
+    searchTerm = normalizeName(dishSearchInput.value);
+    dishSearchClear.classList.toggle('hidden', !dishSearchInput.value);
+    rerenderTabs();
+  });
+  dishSearchClear.addEventListener('click', ()=>{
+    dishSearchInput.value = '';
+    searchTerm = '';
+    dishSearchClear.classList.add('hidden');
+    rerenderTabs();
+    dishSearchInput.focus();
+  });
+
+  /* ================= Generic localStorage JSON helpers ================= */
+  function loadJSON(key, fallback){
+    try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
+    catch(e){ return fallback; }
+  }
+  function saveJSON(key, value){
+    try{ localStorage.setItem(key, JSON.stringify(value)); }catch(e){ /* storage full, ignore */ }
   }
 
   /* ================= TAB 1: Daily Set Menu ================= */
@@ -330,6 +649,22 @@
         fiber:["Khoai sọ nấu sườn","Cà tím dài om thịt băm","Salad gà + hành tây","Nộm hoa chuối","Bắp cải tím trộn dầu dấm","Cải kale nấu canh"],
         protein:["Cá lóc kho khô","Cá lăng+thịt dọi","Cá mòi kho nhừ","Tôm hoàng bào","Trứng cút kho thịt","Trứng cà chua"]}
     ];
+
+    const DAILY_DISH_KEY = 'mealPlannerDailyDishes_v1';
+    const savedDaily = loadJSON(DAILY_DISH_KEY, null);
+    if(savedDaily){
+      DAYS.forEach(day=>{
+        if(savedDaily[day.id]){
+          if(Array.isArray(savedDaily[day.id].fiber) && savedDaily[day.id].fiber.length===6) day.fiber = savedDaily[day.id].fiber;
+          if(Array.isArray(savedDaily[day.id].protein) && savedDaily[day.id].protein.length===6) day.protein = savedDaily[day.id].protein;
+        }
+      });
+    }
+    function saveDailyDishes(){
+      const out = {};
+      DAYS.forEach(day=>{ out[day.id] = {fiber:day.fiber, protein:day.protein}; });
+      saveJSON(DAILY_DISH_KEY, out);
+    }
 
     let selections = {};
     DAYS.forEach(d=> selections[d.id] = {fiber:{idx:null,custom:null}, protein:{idx:null,custom:null}});
@@ -386,17 +721,36 @@
       ["fiber","protein"].forEach(cat=>{
         const listEl = card.querySelector(`.opt-list[data-cat="${cat}"]`);
         day[cat].forEach((text, idx)=>{
+          if(!matchesSearch(text)) return;
           const btn = document.createElement('button');
           const isSel = selections[day.id][cat].idx === idx && !selections[day.id][cat].custom;
           btn.className = "opt" + (isSel? " selected":"");
-          btn.innerHTML = `<span class="num">${idx+1}</span><span>${escapeHtml(text)}</span><span class="check">✓</span>`;
+          const thumb = getPhoto(text) ? `<img class="opt-thumb" src="${getPhoto(text)}" alt="">` : "";
+          btn.innerHTML = `<span class="num">${idx+1}</span>${thumb}<span class="opt-text">${escapeHtml(text)}</span><span class="check">✓</span>` + (editMode ? `<span class="opt-edit" title="Edit dish">✎</span>` : "");
           btn.addEventListener('click', ()=>{
             const cur = selections[day.id][cat];
-            selections[day.id][cat] = (cur.idx===idx && !cur.custom) ? {idx:null,custom:null} : {idx:idx,custom:null};
+            const nowSelecting = !(cur.idx===idx && !cur.custom);
+            selections[day.id][cat] = nowSelecting ? {idx:idx,custom:null} : {idx:null,custom:null};
+            if(nowSelecting) showDishPhoto(text); else hideDishPhoto();
             renderAll();
           });
+          if(editMode){
+            const editIcon = btn.querySelector('.opt-edit');
+            editIcon.addEventListener('click', (e)=>{
+              e.stopPropagation();
+              openDishEditor({name:text, isNew:false}, (newName, newPhoto)=>{
+                applyPhotoEdit(text, newName, newPhoto);
+                day[cat][idx] = newName;
+                saveDailyDishes();
+                renderAll();
+              });
+            });
+          }
           listEl.appendChild(btn);
         });
+        if(searchTerm && listEl.children.length===0){
+          listEl.innerHTML = `<p style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft);margin:4px 0;">No matches</p>`;
+        }
       });
 
       card.querySelector('[data-act="shuffle"]').addEventListener('click', ()=>{
@@ -478,12 +832,12 @@
       });
       renderAll();
     }
-    document.getElementById('notSureBtnSet').addEventListener('click', fillWeekSet);
+    window.__fillTab1 = fillWeekSet;
     document.getElementById('scReceiptTitle').addEventListener('click', fillWeekSet);
-    document.getElementById('clearAllBtnSet').addEventListener('click', ()=>{
+    window.__clearTab1 = function(){
       DAYS.forEach(day=> selections[day.id] = {fiber:{idx:null,custom:null}, protein:{idx:null,custom:null}});
       renderAll();
-    });
+    };
     document.getElementById('scCopyBtn').addEventListener('click', async ()=>{
       let text = "This Week's Menu\n\n";
       DAYS.forEach(day=>{
@@ -505,6 +859,7 @@
     });
 
     function renderAll(){ renderDayTabs(); renderDays(); renderReceipt(); }
+    window.__renderTab1 = renderAll;
     renderAll();
   })();
 
@@ -533,6 +888,16 @@
 
     const DAY_LABELS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
     const DAYS = DAY_LABELS.map((label,i)=>({id:"d"+i, label}));
+
+    const MASTER_LISTS_KEY = 'mealPlannerMasterLists_v1';
+    const savedMaster = loadJSON(MASTER_LISTS_KEY, null);
+    if(savedMaster){
+      if(Array.isArray(savedMaster.fiber) && savedMaster.fiber.length){ MASTER_FIBER.length = 0; MASTER_FIBER.push(...savedMaster.fiber); }
+      if(Array.isArray(savedMaster.protein) && savedMaster.protein.length){ MASTER_PROTEIN.length = 0; MASTER_PROTEIN.push(...savedMaster.protein); }
+    }
+    function saveMasterLists(){
+      saveJSON(MASTER_LISTS_KEY, {fiber:MASTER_FIBER, protein:MASTER_PROTEIN});
+    }
 
     let selections = {};
     DAYS.forEach(d=> selections[d.id] = {fiber:null, protein:null});
@@ -584,16 +949,53 @@
       ["fiber","protein"].forEach(cat=>{
         const listEl = cats.querySelector(`.opt-list[data-cat="${cat}"]`);
         pools[cat].forEach((text, idx)=>{
+          if(!matchesSearch(text)) return;
           const btn = document.createElement('button');
           const isSel = sel[cat] === text;
           btn.className = "opt" + (isSel? " selected":"");
-          btn.innerHTML = `<span class="num">${idx+1}</span><span>${escapeHtml(text)}</span><span class="check">✓</span>`;
+          const thumb = getPhoto(text) ? `<img class="opt-thumb" src="${getPhoto(text)}" alt="">` : "";
+          btn.innerHTML = `<span class="num">${idx+1}</span>${thumb}<span class="opt-text">${escapeHtml(text)}</span><span class="check">✓</span>` + (editMode ? `<span class="opt-edit" title="Edit dish">✎</span>` : "");
           btn.addEventListener('click', ()=>{
-            selections[day.id][cat] = (selections[day.id][cat]===text) ? null : text;
+            const nowSelecting = selections[day.id][cat] !== text;
+            selections[day.id][cat] = nowSelecting ? text : null;
+            if(nowSelecting) showDishPhoto(text); else hideDishPhoto();
             renderAll();
           });
+          if(editMode){
+            const editIcon = btn.querySelector('.opt-edit');
+            editIcon.addEventListener('click', (e)=>{
+              e.stopPropagation();
+              openDishEditor({name:text, isNew:false}, (newName, newPhoto)=>{
+                applyPhotoEdit(text, newName, newPhoto);
+                pools[cat][idx] = newName;
+                DAYS.forEach(d=>{
+                  if(selections[d.id][cat] === text) selections[d.id][cat] = newName;
+                });
+                saveMasterLists();
+                renderAll();
+              });
+            });
+          }
           listEl.appendChild(btn);
         });
+        if(searchTerm && listEl.children.length===0){
+          listEl.innerHTML = `<p style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft);margin:4px 0;">No matches</p>`;
+        }
+        if(editMode){
+          const addBtn = document.createElement('button');
+          addBtn.className = "opt opt-add";
+          addBtn.innerHTML = `<span class="num">+</span><span class="opt-text">Add dish</span>`;
+          addBtn.addEventListener('click', ()=>{
+            openDishEditor({name:"", isNew:true}, (newName, newPhoto)=>{
+              if(pools[cat].includes(newName)){ alert("This dish already exists."); return; }
+              pools[cat].push(newName);
+              if(newPhoto) setPhoto(newName, newPhoto);
+              saveMasterLists();
+              renderAll();
+            });
+          });
+          listEl.appendChild(addBtn);
+        }
       });
 
       card.querySelector('[data-act="shuffle"]').addEventListener('click', ()=>{
@@ -678,12 +1080,12 @@
       });
       renderAll();
     }
-    document.getElementById('notSureBtnFull').addEventListener('click', fillWeekFull);
+    window.__fillTab2 = fillWeekFull;
     document.getElementById('flReceiptTitle').addEventListener('click', fillWeekFull);
-    document.getElementById('clearAllBtnFull').addEventListener('click', ()=>{
+    window.__clearTab2 = function(){
       DAYS.forEach(day=> selections[day.id] = {fiber:null, protein:null});
       renderAll();
-    });
+    };
     document.getElementById('flCopyBtn').addEventListener('click', async ()=>{
       let text = "This Week's Menu\n\n";
       DAYS.forEach(day=>{
@@ -704,8 +1106,29 @@
     });
 
     function renderAll(){ renderDayTabs(); renderDays(); renderReceipt(); }
+    window.__renderTab2 = renderAll;
     renderAll();
   })();
+
+  /* ================= Lock sidebar height to the Daily-tab size ================= */
+  function syncReceiptHeight(){
+    const mainCol = document.querySelector('.main-col');
+    const receiptCol = document.querySelector('.receipt-col');
+    const dailyHidden = document.getElementById('tabSetChoices').classList.contains('hidden');
+    if(!mainCol || !receiptCol) return;
+    if(!dailyHidden){
+      // Daily tab is active: its height is constant (always 6 fiber + 6 protein items),
+      // so measure it and lock the sidebar to match.
+      receiptCol.style.height = mainCol.getBoundingClientRect().height + 'px';
+    }
+    // When Full List is active, receiptCol keeps whatever height was last locked in
+    // (it does not grow to match Full List's much taller master-list content).
+  }
+  window.__syncReceiptHeight = syncReceiptHeight;
+  window.addEventListener('resize', syncReceiptHeight);
+  window.addEventListener('load', syncReceiptHeight);
+  syncReceiptHeight();
+  setTimeout(syncReceiptHeight, 60);
 
 })();
 </script>
