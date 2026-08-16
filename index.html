@@ -421,6 +421,7 @@
     scReceipt.classList.remove('hidden'); flReceipt.classList.add('hidden');
     pageTitle.innerHTML = "Pick your Fiber and Protein.";
     if(window.__syncReceiptHeight) setTimeout(window.__syncReceiptHeight, 0);
+    hideDishPhoto();
   }
   function showFull(){
     tabBtnFull.classList.add('tab-active'); tabBtnFull.setAttribute('aria-selected','true');
@@ -428,6 +429,7 @@
     tabFullList.classList.remove('hidden'); tabSetChoices.classList.add('hidden');
     flNavRow.classList.remove('hidden'); scNavRow.classList.add('hidden');
     flReceipt.classList.remove('hidden'); scReceipt.classList.add('hidden');
+    hideDishPhoto();
   }
   tabBtnSet.addEventListener('click', showSet);
   tabBtnFull.addEventListener('click', showFull);
