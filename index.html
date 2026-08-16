@@ -277,6 +277,23 @@
   #dmPhotoPlaceholder{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink-soft); text-align:center; padding:0 16px; line-height:1.5; }
   .modal-actions{ display:flex; align-items:center; gap:8px; }
   .modal-actions .btn{ padding:8px 14px; font-size:13px; }
+  .modal-secondary-actions{ display:flex; gap:8px; margin-bottom:12px; }
+  .modal-secondary-actions .btn{ padding:6px 10px; font-size:12px; flex:1; }
+  .modal-photo-library{
+    max-height:220px; overflow-y:auto; border:1.5px solid var(--line); border-radius:6px; padding:10px;
+    margin-bottom:12px; display:grid; grid-template-columns:repeat(4,1fr); gap:8px; background:var(--fiber-bg);
+  }
+  .modal-photo-library.hidden{ display:none; }
+  .lib-thumb{ cursor:pointer; border-radius:5px; overflow:hidden; border:1.5px solid transparent; background:var(--paper); }
+  .lib-thumb:hover{ border-color:var(--ink-soft); }
+  .lib-thumb img{ width:100%; height:60px; object-fit:cover; display:block; }
+  .lib-thumb .lib-thumb-name{
+    font-family:'IBM Plex Mono',monospace; font-size:8.5px; color:var(--ink-soft); padding:3px 4px; line-height:1.2;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .modal-photo-library-empty{
+    grid-column:1/-1; font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink-soft); text-align:center; padding:10px 0;
+  }
 
 </style>
 </head>
@@ -593,6 +610,10 @@
           '<div id="dmPhotoPlaceholder">Click to upload, or paste (Ctrl+V) an image</div>' +
         '</div>' +
         '<input type="file" id="dmFileInput" accept="image/*" class="hidden">' +
+        '<div class="modal-secondary-actions">' +
+          '<button class="btn btn-ghost" id="dmChooseExisting" type="button">📚 Choose from existing photos</button>' +
+        '</div>' +
+        '<div class="modal-photo-library hidden" id="dmPhotoLibrary"></div>' +
         '<div class="modal-actions">' +
           '<button class="btn btn-ghost" id="dmRemovePhoto">Remove photo</button>' +
           '<div style="flex:1"></div>' +
@@ -617,6 +638,38 @@
     });
     document.getElementById('dmRemovePhoto').addEventListener('click', ()=>{
       dmState.photoDataUrl = null; setPreview(null);
+    });
+    const libEl = document.getElementById('dmPhotoLibrary');
+    document.getElementById('dmChooseExisting').addEventListener('click', ()=>{
+      const opening = libEl.classList.contains('hidden');
+      if(opening){
+        // Build a deduped list of {name, dataUrl} from all saved photos.
+        const seen = new Set();
+        const entries = [];
+        Object.keys(dishPhotos).forEach((key)=>{
+          const url = dishPhotos[key];
+          if(!url || seen.has(url)) return;
+          seen.add(url);
+          entries.push({ name: key, dataUrl: url });
+        });
+        libEl.innerHTML = '';
+        if(entries.length === 0){
+          libEl.innerHTML = '<div class="modal-photo-library-empty">No photos uploaded yet.</div>';
+        } else {
+          entries.forEach((entry)=>{
+            const cell = document.createElement('div');
+            cell.className = 'lib-thumb';
+            cell.innerHTML = `<img src="${entry.dataUrl}" alt=""><div class="lib-thumb-name">${escapeHtml(entry.name)}</div>`;
+            cell.addEventListener('click', ()=>{
+              dmState.photoDataUrl = entry.dataUrl;
+              setPreview(entry.dataUrl);
+              libEl.classList.add('hidden');
+            });
+            libEl.appendChild(cell);
+          });
+        }
+      }
+      libEl.classList.toggle('hidden');
     });
     document.getElementById('dmCancel').addEventListener('click', closeDishEditor);
     m.addEventListener('click', (e)=>{ if(e.target === m) closeDishEditor(); });
@@ -660,6 +713,8 @@
     const ph = document.getElementById('dmPhotoPlaceholder');
     if(existing){ img.src = existing; img.classList.remove('hidden'); ph.classList.add('hidden'); dmState.photoDataUrl = existing; }
     else{ img.classList.add('hidden'); ph.classList.remove('hidden'); }
+    const lib = document.getElementById('dmPhotoLibrary');
+    if(lib) lib.classList.add('hidden');
     m.classList.remove('hidden');
     setTimeout(()=>{ const inp = document.getElementById('dmName'); inp.focus(); inp.select(); }, 30);
   }
