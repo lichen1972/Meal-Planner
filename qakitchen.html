@@ -6,7 +6,7 @@
 <title>Hôm nay ăn gì?</title>
 
 <link rel="manifest" href="./manifest.json">
-<meta name="theme-color" content="#a68e64">
+<meta name="theme-color" content="#5c3f72">
 <link rel="icon" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -18,11 +18,11 @@
   @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
   :root{
-    --kraft:#cbb890; --kraft-deep:#a68e64;
-    --paper:#faf6ec; --shadow:rgba(58,50,38,0.28);
-    --ink:#3a3226; --ink-soft:#7a6b52; --line:#ded0b3;
-    --fiber:#6b8f5e; --fiber-bg:#e8ede0; --fiber-deep:#4a6b3f;
-    --protein:#b06a3e; --protein-bg:#f3e3d3; --protein-deep:#7a4526;
+    --kraft:#7d5a95; --kraft-deep:#5c3f72;
+    --paper:#faf6f0; --shadow:rgba(45,25,55,0.32);
+    --ink:#2d1f35; --ink-soft:#6b5578; --line:#ddc9e8;
+    --fiber:#5a8f4a; --fiber-bg:#e8f0e2; --fiber-deep:#3d6b30;
+    --protein:#e0932e; --protein-bg:#faf0dc; --protein-deep:#a8651a;
     --funday:#c9a44c;
   }
   *{ box-sizing:border-box; }
@@ -31,10 +31,11 @@
     content:""; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:0.09; mix-blend-mode:multiply;
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
-  /* marble grain: soft irregular veining streaks layered over the noise */
+  /* soft floret-like stipple texture layered over the noise */
   body::after{
-    content:""; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:0.06; mix-blend-mode:overlay;
-    background-image:repeating-linear-gradient(100deg, rgba(255,255,255,0.5) 0px, rgba(255,255,255,0.5) 1px, transparent 1px, transparent 26px);
+    content:""; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:0.05; mix-blend-mode:overlay;
+    background-image:radial-gradient(rgba(255,255,255,0.6) 1px, transparent 1.4px);
+    background-size:14px 14px;
   }
   .wrap{ position:relative; z-index:1; max-width:1180px; margin:0 auto; padding:28px 20px 80px; zoom:0.9; }
 
@@ -79,20 +80,20 @@
   }
   .seg{
     font-family:'Inter',sans-serif; height:52px; padding:0 20px; border:none; border-radius:26px;
-    font-weight:700; font-size:15px; line-height:52px; background:#a68e64; color:#FFFFFF;
+    font-weight:700; font-size:15px; line-height:52px; background:#7d5a95; color:#FFFFFF;
     cursor:pointer; text-align:center; white-space:nowrap; transition:filter .15s,background .15s; flex-shrink:0;
   }
   .seg:hover{ filter:brightness(1.08); }
   .seg:focus-visible{ outline:2px solid var(--ink); outline-offset:2px; }
-  .seg.tab-active{ background:#7a6647; }
-  .seg.seg-hero{ background:#a68e64; }
-  .seg.seg-danger{ background:#a8452e; }
+  .seg.tab-active{ background:#5c3f72; }
+  .seg.seg-hero{ background:#7d5a95; }
+  .seg.seg-danger{ background:#c0392b; }
   @media (max-width:480px){
     .seg{ height:44px; padding:0 14px; font-size:13px; line-height:44px; }
     .seg-group{ padding:10px; gap:7px; }
   }
-  .seg.seg-full{ background:#a68e64; }
-  .seg.seg-full.tab-active{ background:#7a6647; }
+  .seg.seg-full{ background:#7d5a95; }
+  .seg.seg-full.tab-active{ background:#5c3f72; }
   .seg.seg-editing{ background:var(--fiber-deep); }
 
   .toolbar{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; flex-shrink:0; }
@@ -112,10 +113,10 @@
   .day-tab{
     background:none; border:none; cursor:pointer; padding:4px 1px;
     font-family:'Inter',sans-serif; font-weight:700; font-size:15px;
-    color:var(--protein-deep); border-bottom:2px solid transparent;
+    color:#ffd77a; border-bottom:2px solid transparent;
   }
-  .day-tab:hover{ color:var(--ink); }
-  .day-tab.active{ color:var(--ink); border-bottom-color:var(--protein); }
+  .day-tab:hover{ color:#fff; }
+  .day-tab.active{ color:#fff; border-bottom-color:#ffd77a; }
   .day-tab:focus-visible{ outline:2px solid var(--ink); }
 
   .arrow-btn{
@@ -172,7 +173,7 @@
   .receipt{
     background:var(--paper); padding:0 16px 15px; display:flex; flex-direction:column; flex:1; min-height:0;
     border-radius:16px; overflow:hidden;
-    box-shadow:0 10px 26px rgba(58,50,38,0.28), 0 0 46px 6px rgba(255,253,246,0.4);
+    box-shadow:0 10px 26px rgba(45,25,55,0.32), 0 0 46px 6px rgba(255,253,246,0.4);
   }
   .receipt-zig{ height:12px; background:linear-gradient(-45deg,var(--kraft) 6px,transparent 0) 0 0/12px 12px, linear-gradient(45deg,var(--kraft) 6px,transparent 0) 0 0/12px 12px; background-color:var(--paper); }
   .receipt-zig.bottom{ transform:rotate(180deg); }
