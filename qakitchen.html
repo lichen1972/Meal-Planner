@@ -1,0 +1,1371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hôm nay ăn gì?</title>
+
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#a68e64">
+<link rel="icon" href="./icon-192.png">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Meal Planner">
+<meta name="mobile-web-app-capable" content="yes">
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root{
+    --kraft:#cbb890; --kraft-deep:#a68e64;
+    --paper:#faf6ec; --shadow:rgba(58,50,38,0.28);
+    --ink:#3a3226; --ink-soft:#7a6b52; --line:#ded0b3;
+    --fiber:#6b8f5e; --fiber-bg:#e8ede0; --fiber-deep:#4a6b3f;
+    --protein:#b06a3e; --protein-bg:#f3e3d3; --protein-deep:#7a4526;
+    --funday:#c9a44c;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; background:var(--kraft); color:var(--ink); font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; overflow-x:hidden; max-width:100vw; }
+  body::before{
+    content:""; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:0.09; mix-blend-mode:multiply;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  /* marble grain: soft irregular veining streaks layered over the noise */
+  body::after{
+    content:""; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:0.06; mix-blend-mode:overlay;
+    background-image:repeating-linear-gradient(100deg, rgba(255,255,255,0.5) 0px, rgba(255,255,255,0.5) 1px, transparent 1px, transparent 26px);
+  }
+  .wrap{ position:relative; z-index:1; max-width:1180px; margin:0 auto; padding:28px 20px 80px; zoom:0.9; }
+
+  .layout{ display:grid; grid-template-columns:1fr 300px; gap:22px; align-items:stretch; }
+  @media (max-width:940px){ .layout{ grid-template-columns:1fr; } }
+  .main-col{ min-width:0; }
+  .frozen-top{
+    position:sticky; top:0; z-index:20;
+    background:var(--kraft); padding-bottom:4px;
+    box-shadow:0 10px 14px -10px rgba(43,33,24,0.35);
+  }
+
+  header.board{
+    background:var(--kraft-deep); border-radius:4px; padding:24px 26px 22px;
+    box-shadow:0 10px 26px var(--shadow), inset 0 0 0 1px rgba(255,255,255,0.08);
+    margin:0 0 18px;
+  }
+
+  .eyebrow{ font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:rgba(255,253,246,0.75); margin:0 0 6px; }
+  h1{ font-family:'Fraunces',serif; font-weight:700; font-size:clamp(22px,2.6vw,32px); line-height:1.05; margin:0 0 8px; color:var(--paper); letter-spacing:-0.01em; white-space:nowrap; }
+  @media (max-width:640px){ h1{ white-space:normal; } }
+  .sub{ font-family:'IBM Plex Mono',monospace; color:rgba(255,253,246,0.82); font-size:12.5px; letter-spacing:.04em; max-width:560px; margin:0; }
+
+  /* controls row: tab switcher + action buttons, side by side below the header */
+  .controls-row{ display:flex; align-items:center; justify-content:center; gap:12px; flex-wrap:wrap; margin:0 0 18px; zoom:0.95; max-width:100%; }
+
+  /* unified button cluster: tab name + its actions, grouped together */
+  .seg-group{
+    display:inline-flex; flex-shrink:1; flex-wrap:wrap; max-width:100%; box-sizing:border-box;
+    gap:10px; padding:14px; border-radius:36px;
+    /* the glow itself: bright center fading to transparent */
+    background: radial-gradient(
+      ellipse at center,
+      rgba(255, 252, 240, 0.95) 0%,
+      rgba(255, 252, 240, 0.55) 45%,
+      rgba(255, 252, 240, 0) 78%
+    );
+    /* two-layer bloom: tight bright core + soft outer haze */
+    box-shadow:
+      0 0 14px 2px rgba(255, 253, 245, 0.7),
+      0 0 40px 14px rgba(255, 250, 235, 0.35);
+  }
+  .seg{
+    font-family:'Inter',sans-serif; height:52px; padding:0 20px; border:none; border-radius:26px;
+    font-weight:700; font-size:15px; line-height:52px; background:#a68e64; color:#FFFFFF;
+    cursor:pointer; text-align:center; white-space:nowrap; transition:filter .15s,background .15s; flex-shrink:0;
+  }
+  .seg:hover{ filter:brightness(1.08); }
+  .seg:focus-visible{ outline:2px solid var(--ink); outline-offset:2px; }
+  .seg.tab-active{ background:#7a6647; }
+  .seg.seg-hero{ background:#a68e64; }
+  .seg.seg-danger{ background:#a8452e; }
+  @media (max-width:480px){
+    .seg{ height:44px; padding:0 14px; font-size:13px; line-height:44px; }
+    .seg-group{ padding:10px; gap:7px; }
+  }
+  .seg.seg-full{ background:#a68e64; }
+  .seg.seg-full.tab-active{ background:#7a6647; }
+  .seg.seg-editing{ background:var(--fiber-deep); }
+
+  .toolbar{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; flex-shrink:0; }
+  .btn{ font-family:'Inter',sans-serif; font-weight:600; font-size:13.5px; border:1.5px solid transparent; border-radius:10px; padding:9.5px 18px; cursor:pointer; transition:transform .1s, filter .15s, background .15s, border-color .15s; white-space:nowrap; flex-shrink:0; line-height:1.2; }
+  .btn:active{ transform:translateY(1px); }
+  .btn:focus-visible{ outline:2px solid var(--ink); }
+  .btn-hero{ background:var(--protein); color:var(--paper); border-color:var(--protein); box-shadow:0 4px 10px rgba(0,0,0,0.25); }
+  .btn-hero:hover{ filter:brightness(1.08); }
+  .btn-ghost{ background:var(--paper); color:var(--ink); border-color:var(--line); }
+  .btn-ghost:hover{ border-color:var(--ink-soft); }
+
+  .days{ display:flex; flex-direction:column; gap:14px; }
+
+  /* day quick-pick tabs + nav arrows, all in one row */
+  .day-nav-row{ display:flex; align-items:center; gap:16px; margin-bottom:14px; zoom:0.95; }
+  .day-tabs{ display:flex; gap:22px; flex-wrap:wrap; flex:1; justify-content:center; }
+  .day-tab{
+    background:none; border:none; cursor:pointer; padding:4px 1px;
+    font-family:'Inter',sans-serif; font-weight:700; font-size:15px;
+    color:var(--protein-deep); border-bottom:2px solid transparent;
+  }
+  .day-tab:hover{ color:var(--ink); }
+  .day-tab.active{ color:var(--ink); border-bottom-color:var(--protein); }
+  .day-tab:focus-visible{ outline:2px solid var(--ink); }
+
+  .arrow-btn{
+    width:38px; height:34px; border-radius:6px; border:none; cursor:pointer; flex-shrink:0;
+    background:var(--kraft-deep); color:var(--paper); font-size:16px;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 3px 8px var(--shadow); transition:filter .15s, transform .1s;
+  }
+  .arrow-btn:hover{ filter:brightness(1.1); }
+  .arrow-btn:active{ transform:translateY(1px); }
+  .arrow-btn:disabled{ opacity:0.35; cursor:default; }
+  .arrow-btn:focus-visible{ outline:2px solid var(--ink); outline-offset:2px; }
+
+  .day-card{ background:var(--paper); border-radius:3px; padding:15px 17px 16px; box-shadow:0 6px 14px var(--shadow); position:relative; }
+  .day-card.funday{ box-shadow:0 0 0 2px var(--funday), 0 8px 16px var(--shadow); }
+  .day-top{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:11px; flex-wrap:wrap; }
+  .day-name{ font-family:'Fraunces',serif; font-weight:600; font-size:19px; margin:0; }
+  .day-name .tag{ font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; background:var(--funday); color:var(--paper); padding:2px 7px; border-radius:8px; margin-left:8px; vertical-align:middle; }
+  .day-actions{ display:flex; gap:6px; }
+  .mini-btn{ font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.04em; background:none; border:1px solid var(--line); color:var(--ink-soft); border-radius:12px; padding:4px 10px; cursor:pointer; }
+  .mini-btn:hover{ border-color:var(--ink-soft); color:var(--ink); }
+
+  .cats{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width:600px){ .cats{ grid-template-columns:1fr; } }
+
+  /* set-choices chip list */
+  .cat-block h3{ font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; margin:0 0 8px; display:flex; align-items:center; gap:6px; }
+  .cat-block.fiber h3{ color:var(--fiber-deep); }
+  .cat-block.protein h3{ color:var(--protein-deep); }
+  .dot{ width:8px; height:8px; border-radius:50%; display:inline-block; }
+  .fiber .dot{ background:var(--fiber); }
+  .protein .dot{ background:var(--protein); }
+  .opt-list{ display:flex; flex-direction:column; gap:4px; }
+  .opt{
+    display:flex; align-items:center; gap:8px; text-align:left;
+    border:1px solid var(--line); background:none; border-radius:3px;
+    padding:5.5px 9px; font-family:'Inter',sans-serif; font-size:12.5px; cursor:pointer;
+    color:var(--ink); width:100%;
+  }
+  .opt .num{ font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--ink-soft); width:14px; flex-shrink:0; }
+  .opt:hover{ border-color:var(--ink-soft); }
+  .opt:focus-visible{ outline:2px solid var(--ink); }
+  .fiber .opt.selected{ background:var(--fiber-bg); border-color:var(--fiber); }
+  .fiber .opt.selected .num{ color:var(--fiber-deep); }
+  .protein .opt.selected{ background:var(--protein-bg); border-color:var(--protein); }
+  .protein .opt.selected .num{ color:var(--protein-deep); }
+  .opt .check{ margin-left:auto; opacity:0; font-size:12px; }
+  .opt.selected .check{ opacity:1; }
+  .fiber .opt.selected .check{ color:var(--fiber-deep); }
+  .protein .opt.selected .check{ color:var(--protein-deep); }
+
+  /* ---------- Summary receipt ---------- */
+  .receipt-col{ position:sticky; top:20px; display:flex; flex-direction:column; }
+  .receipt{
+    background:var(--paper); padding:0 16px 15px; display:flex; flex-direction:column; flex:1; min-height:0;
+    border-radius:16px; overflow:hidden;
+    box-shadow:0 10px 26px rgba(58,50,38,0.28), 0 0 46px 6px rgba(255,253,246,0.4);
+  }
+  .receipt-zig{ height:12px; background:linear-gradient(-45deg,var(--kraft) 6px,transparent 0) 0 0/12px 12px, linear-gradient(45deg,var(--kraft) 6px,transparent 0) 0 0/12px 12px; background-color:var(--paper); }
+  .receipt-zig.bottom{ transform:rotate(180deg); }
+  .receipt-head{ text-align:center; padding:12px 0 9px; border-bottom:1px dashed var(--line); }
+  .receipt-head h2{ font-family:'Fraunces',serif; font-size:18px; margin:0 0 2px; }
+  .receipt-head .rsub{ font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--ink-soft); }
+  .rrow{ display:flex; justify-content:space-between; align-items:baseline; padding:6px 0; border-bottom:1px dashed var(--line); font-size:12px; gap:8px; line-height:1.45; }
+  .rrow:last-of-type{ border-bottom:none; }
+  .rrow .rday{ font-family:'IBM Plex Mono',monospace; font-size:10.5px; text-transform:uppercase; color:var(--ink-soft); flex-shrink:0; width:50px; }
+  .rrow .rpicks{ text-align:right; flex:1; }
+  .rrow .rpicks .fp{ color:var(--fiber-deep); }
+  .rrow .rpicks .pp{ color:var(--protein-deep); }
+  .rrow .rpicks .empty{ color:var(--ink-soft); font-style:italic; }
+  .rrow .rpicks .val-edit{
+    display:inline-block; cursor:pointer; border-bottom:1px dotted var(--line);
+    padding:1px 2px; border-radius:2px; max-width:100%;
+  }
+  .rrow .rpicks .val-edit:hover{ border-bottom-color:var(--ink); background:rgba(43,33,24,0.06); }
+  .rrow .rpicks .val-edit::after{ content:" ✎"; font-size:9px; opacity:0.5; }
+  .rrow .rpicks input{
+    width:100%; text-align:right; font-family:'Inter',sans-serif; font-size:12px;
+    border:1px solid var(--ink-soft); border-radius:3px; padding:2px 5px; color:var(--ink); background:var(--paper);
+  }
+  .receipt-count{ text-align:center; font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink-soft); margin-top:9px; }
+  .receipt-actions{ margin-top:auto; padding-top:11px; display:flex; gap:8px; }
+  .receipt-actions .btn{ flex:1; font-size:12px; padding:7px 10px; }
+  .btn-outline{ background:none; border:1px solid var(--ink-soft); color:var(--ink); }
+  .btn-outline:hover{ background:var(--ink); color:var(--paper); }
+  .credit{ position:fixed; right:14px; bottom:12px; margin:0; font-family:'Inter',sans-serif; font-weight:700; font-size:12px; color:var(--ink); opacity:0.28; letter-spacing:.02em; z-index:50; pointer-events:none; zoom:0.9; }
+
+  footer.note{ text-align:center; margin-top:26px; font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:rgba(43,33,24,0.82); font-weight:600; }
+
+  .hidden{ display:none !important; }
+  @media (prefers-reduced-motion:reduce){ *{ transition:none !important; } }
+
+  /* ---------- Header photo box ---------- */
+  .board-row{ display:flex; align-items:flex-start; justify-content:space-between; gap:18px; flex-wrap:wrap; }
+  .board-text{ min-width:0; flex:1; }
+  .board-photo{
+    width:190px; height:142px; flex-shrink:0; border-radius:6px; overflow:hidden; position:relative;
+    background:rgba(0,0,0,0.15); border:1.5px solid rgba(255,253,246,0.35);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .board-photo img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .board-photo-empty{
+    display:flex; flex-direction:column; align-items:center; gap:6px; text-align:center; padding:0 12px;
+    font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:rgba(255,253,246,0.55); line-height:1.4;
+  }
+  .board-photo-empty .icon{ font-size:22px; opacity:0.6; }
+  .board-photo-name{
+    position:absolute; left:0; right:0; bottom:0; background:rgba(43,33,24,0.6); color:var(--paper);
+    font-family:'IBM Plex Mono',monospace; font-size:10px; padding:3px 8px; text-align:center;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  @media (max-width:640px){ .board-photo{ width:120px; height:96px; } .board-photo-empty{ font-size:9.5px; } }
+
+  /* ---------- Header search box ---------- */
+  .search-wrap{ position:relative; margin-top:12px; max-width:420px; }
+  .search-icon{ position:absolute; left:12px; top:50%; transform:translateY(-50%); font-size:13px; opacity:0.6; pointer-events:none; }
+  .search-input{
+    width:100%; font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:.03em;
+    background:rgba(255,253,246,0.38); border:1.5px solid rgba(255,253,246,0.7); border-radius:6px;
+    padding:10px 34px; color:var(--ink);
+  }
+  .search-input::placeholder{ color:rgba(43,33,24,0.55); letter-spacing:.14em; text-transform:uppercase; }
+  .search-input:focus{ outline:none; border-color:var(--paper); background:rgba(255,253,246,0.5); }
+  .search-clear{
+    position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer;
+    color:rgba(43,33,24,0.6); font-size:12px; padding:4px 6px; border-radius:50%;
+  }
+  .search-clear:hover{ color:var(--ink); background:rgba(43,33,24,0.1); }
+  .opt.search-miss{ display:none !important; }
+
+  /* ---------- Edit / add affordances on dish chips ---------- */
+  .opt{ position:relative; }
+  .opt .opt-text{ flex:1; }
+  .opt-edit{
+    flex-shrink:0; font-size:11.5px; color:var(--ink-soft); padding:2px 5px; border-radius:3px; margin-left:4px;
+  }
+  .opt-edit:hover{ background:rgba(43,33,24,0.08); color:var(--ink); }
+  .opt-thumb{ width:20px; height:20px; border-radius:3px; object-fit:cover; flex-shrink:0; }
+  .opt-add{ border-style:dashed; color:var(--ink-soft); justify-content:center; font-weight:600; }
+  .opt-add:hover{ color:var(--ink); border-color:var(--ink-soft); }
+
+  /* ---------- Dish edit modal ---------- */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(20,15,10,0.55); z-index:200;
+    display:flex; align-items:center; justify-content:center; padding:20px;
+  }
+  .modal-box{
+    background:var(--paper); border-radius:6px; width:min(420px,100%); padding:20px 20px 18px;
+    box-shadow:0 20px 50px rgba(0,0,0,0.4); zoom:0.9;
+  }
+  .modal-box h3{ font-family:'Fraunces',serif; margin:0 0 14px; font-size:18px; }
+  .modal-label{ display:block; font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-soft); margin:0 0 6px; }
+  .modal-input{
+    width:100%; font-family:'Inter',sans-serif; font-size:14px; padding:9px 10px; border:1.5px solid var(--line);
+    border-radius:5px; color:var(--ink); margin-bottom:14px; background:var(--paper);
+  }
+  .modal-input:focus{ outline:none; border-color:var(--ink-soft); }
+  .modal-photo-drop{
+    height:140px; border:1.5px dashed var(--line); border-radius:6px; cursor:pointer; margin-bottom:12px;
+    display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative; background:var(--fiber-bg);
+  }
+  .modal-photo-drop:hover{ border-color:var(--ink-soft); }
+  .modal-photo-drop img{ width:100%; height:100%; object-fit:cover; }
+  #dmPhotoPlaceholder{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink-soft); text-align:center; padding:0 16px; line-height:1.5; }
+  .modal-actions{ display:flex; align-items:center; gap:8px; }
+  .modal-actions .btn{ padding:8px 14px; font-size:13px; }
+
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="layout">
+    <div class="main-col">
+      <div class="frozen-top">
+        <header class="board">
+          <div class="board-row">
+            <div class="board-text">
+              <p class="eyebrow">Hôm nay ăn gì?</p>
+              <h1 id="pageTitle">Pick your Fiber and Protein.</h1>
+              <p class="sub" id="pageSub" style="font-weight:700; color:#ffd166; letter-spacing:.02em;">nhiều rau - ít thịt</p>
+              <div class="search-wrap">
+                <span class="search-icon">🔎</span>
+                <input type="text" id="dishSearch" class="search-input" placeholder="SEARCH" autocomplete="off">
+                <button class="search-clear hidden" id="dishSearchClear" title="Clear search">✕</button>
+              </div>
+            </div>
+            <div class="board-photo" id="boardPhoto">
+              <img id="boardPhotoImg" class="hidden" alt="">
+              <div class="board-photo-empty" id="boardPhotoEmpty"><span class="icon">📷</span><span>Chọn món để xem ảnh</span></div>
+              <div class="board-photo-name" id="boardPhotoName"></div>
+            </div>
+          </div>
+        </header>
+
+        <div class="controls-row">
+          <div class="seg-group" id="groupSet" role="tablist">
+            <button id="tabBtnSet" class="seg tab-active" role="tab" aria-selected="true">Let me select</button>
+            <button id="notSureBtnSet" class="seg seg-hero">I am not sure</button>
+            <button id="clearAllBtnSet" class="seg seg-danger">🗑 Clear all</button>
+          </div>
+          <div class="seg-group" id="groupFull">
+            <button id="tabBtnFull" class="seg seg-full" role="tab" aria-selected="false">Full list</button>
+            <button id="editModeBtn" class="seg seg-full" title="Unlock dish editing">🔒 Updates</button>
+          </div>
+        </div>
+
+        <div class="day-nav-row" id="scNavRow">
+          <button class="arrow-btn" id="scPrevDay" aria-label="Previous day">←</button>
+          <div class="day-tabs" id="scDayTabs"></div>
+          <button class="arrow-btn" id="scNextDay" aria-label="Next day">→</button>
+        </div>
+        <div class="day-nav-row hidden" id="flNavRow">
+          <button class="arrow-btn" id="flPrevDay" aria-label="Previous day">←</button>
+          <div class="day-tabs" id="flDayTabs"></div>
+          <button class="arrow-btn" id="flNextDay" aria-label="Next day">→</button>
+        </div>
+      </div>
+
+      <!-- ===================== TAB 1: Daily Set Menu ===================== -->
+      <div id="tabSetChoices">
+        <div class="days" id="scDaysList"></div>
+        <footer class="note">Tap an item to choose it. Tap it again to clear that pick.</footer>
+      </div>
+
+      <!-- ===================== TAB 2: Full List Builder ===================== -->
+      <div id="tabFullList" class="hidden">
+        <div class="days" id="flDaysList"></div>
+        <footer class="note">Tap an item to choose it. Tap it again to clear that pick.</footer>
+      </div>
+    </div>
+
+    <div class="receipt-col">
+      <div class="receipt" id="scReceipt">
+        <div class="receipt-zig"></div>
+        <div class="receipt-head">
+          <h2 id="scReceiptTitle" style="cursor:pointer;" title="Click to fill the whole week">This Week's Menu</h2>
+          <div class="rsub" id="scRSub">— pick to fill - click to type —</div>
+        </div>
+        <div id="scRBody"></div>
+        <div class="receipt-count" id="scRCount"></div>
+        <div class="receipt-actions">
+          <button class="btn btn-outline" id="scCopyBtn">Copy plan</button>
+        </div>
+        <div class="receipt-zig bottom"></div>
+      </div>
+      <div class="receipt hidden" id="flReceipt">
+        <div class="receipt-zig"></div>
+        <div class="receipt-head">
+          <h2 id="flReceiptTitle" style="cursor:pointer;" title="Click to fill the whole week">This Week's Menu</h2>
+          <div class="rsub" id="flRSub">— pick to fill - click to type —</div>
+        </div>
+        <div id="flRBody"></div>
+        <div class="receipt-count" id="flRCount"></div>
+        <div class="receipt-actions">
+          <button class="btn btn-outline" id="flCopyBtn">Copy plan</button>
+        </div>
+        <div class="receipt-zig bottom"></div>
+      </div>
+      <p class="credit">Built by a food lover</p>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script>
+  // mykitchen.html connects to the same cloud project ONLY to pull a one-time
+  // read-only snapshot of dishes/photos on first ever load. It never writes
+  // anything back and never listens for live changes — see CLOUD_READ_ONLY
+  // below, which disables every write path in the app for this file.
+  const firebaseConfig = {
+    apiKey: "AIzaSyDti1RRcmQgk0AfB4G0ryfJrwH06fBg5Uo",
+    authDomain: "meal-planner-20d37.firebaseapp.com",
+    projectId: "meal-planner-20d37",
+    storageBucket: "meal-planner-20d37.firebasestorage.app",
+    messagingSenderId: "504219478903",
+    appId: "1:504219478903:web:177f0d879da1637ffa0f72",
+    measurementId: "G-HYPSHFBL3W"
+  };
+  let db = null;
+  try{
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+  }catch(e){
+    console.warn("Firebase init failed, starting fully blank/local:", e);
+  }
+</script>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ================= Tab switching ================= */
+  const tabBtnSet = document.getElementById('tabBtnSet');
+  const tabBtnFull = document.getElementById('tabBtnFull');
+  const tabSetChoices = document.getElementById('tabSetChoices');
+  const tabFullList = document.getElementById('tabFullList');
+  const notSureBtnSet = document.getElementById('notSureBtnSet');
+  const clearAllBtnSet = document.getElementById('clearAllBtnSet');
+  const editModeBtnEl = document.getElementById('editModeBtn');
+  const scNavRow = document.getElementById('scNavRow');
+  const flNavRow = document.getElementById('flNavRow');
+  const scReceipt = document.getElementById('scReceipt');
+  const flReceipt = document.getElementById('flReceipt');
+  const pageTitle = document.getElementById('pageTitle');
+
+  function showSet(){
+    tabBtnSet.setAttribute('aria-selected','true');
+    tabBtnFull.classList.remove('tab-active'); tabBtnFull.setAttribute('aria-selected','false');
+    tabSetChoices.classList.remove('hidden'); tabFullList.classList.add('hidden');
+    scNavRow.classList.remove('hidden'); flNavRow.classList.add('hidden');
+    scReceipt.classList.remove('hidden'); flReceipt.classList.add('hidden');
+    pageTitle.innerHTML = "Pick your Fiber and Protein.";
+    if(window.__syncReceiptHeight) setTimeout(window.__syncReceiptHeight, 0);
+  }
+  function showFull(){
+    tabBtnFull.classList.add('tab-active'); tabBtnFull.setAttribute('aria-selected','true');
+    tabBtnSet.setAttribute('aria-selected','false');
+    tabFullList.classList.remove('hidden'); tabSetChoices.classList.add('hidden');
+    flNavRow.classList.remove('hidden'); scNavRow.classList.add('hidden');
+    flReceipt.classList.remove('hidden'); scReceipt.classList.add('hidden');
+  }
+  tabBtnSet.addEventListener('click', showSet);
+  tabBtnFull.addEventListener('click', showFull);
+
+  function escapeHtml(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+  function shuffled(arr){
+    const a = arr.slice();
+    for(let i=a.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+    return a;
+  }
+
+  /* ================= Dish photos (shared across both tabs) ================= */
+  const PHOTO_KEY = 'qakitchenDishPhotos_v1';
+  let dishPhotos = {};
+  try{ dishPhotos = JSON.parse(localStorage.getItem(PHOTO_KEY) || '{}'); }catch(e){ dishPhotos = {}; }
+  function normalizeName(n){ return (n||'').trim().toLowerCase(); }
+  // Firestore document IDs can't contain "/" (common in dish names like "Cải bắp / Cải tím")
+  // and have other restrictions, so hash the name into a safe, stable, short ID.
+  function hashKey(str){
+    let h = 5381;
+    for(let i=0;i<str.length;i++){ h = ((h*33) ^ str.charCodeAt(i)) >>> 0; }
+    return 'p' + h.toString(36);
+  }
+  function getPhoto(name){ return dishPhotos[normalizeName(name)] || null; }
+  function setPhoto(name, dataUrl){
+    const key = normalizeName(name);
+    if(!key) return;
+    if(dataUrl) dishPhotos[key] = dataUrl; else delete dishPhotos[key];
+    try{ localStorage.setItem(PHOTO_KEY, JSON.stringify(dishPhotos)); }catch(e){ /* storage full, ignore */ }
+    // mykitchen.html is read-only toward the cloud: photo edits here save
+    // locally only and are never pushed back to the shared Firestore data.
+  }
+  function applyPhotoEdit(oldName, newName, newPhoto){
+    // newPhoto: undefined = unchanged, null = removed, string = new data URL
+    const finalPhoto = (newPhoto === undefined) ? getPhoto(oldName) : newPhoto;
+    if(oldName && oldName !== newName) setPhoto(oldName, null);
+    setPhoto(newName, finalPhoto);
+  }
+
+  /* ================= Header photo box ================= */
+  function showDishPhoto(name){
+    const img = document.getElementById('boardPhotoImg');
+    const empty = document.getElementById('boardPhotoEmpty');
+    const label = document.getElementById('boardPhotoName');
+    const photo = getPhoto(name);
+    label.textContent = name || '';
+    if(photo){
+      img.src = photo; img.classList.remove('hidden'); empty.classList.add('hidden');
+    }else{
+      img.classList.add('hidden'); empty.classList.remove('hidden');
+      empty.querySelector('span:last-child').textContent = name ? ("Chưa có ảnh — " + name) : "Chọn món để xem ảnh";
+    }
+  }
+  function hideDishPhoto(){
+    const img = document.getElementById('boardPhotoImg');
+    const empty = document.getElementById('boardPhotoEmpty');
+    const label = document.getElementById('boardPhotoName');
+    img.classList.add('hidden'); label.textContent = '';
+    empty.classList.remove('hidden');
+    empty.querySelector('span:last-child').textContent = "Chọn món để xem ảnh";
+  }
+
+  /* ================= Edit mode (password gated) ================= */
+  let editMode = false;
+  const EDIT_PASSWORD = 'qa';
+  function refreshEditModeUI(){
+    const btn = document.getElementById('editModeBtn');
+    if(!btn) return;
+    btn.textContent = editMode ? "🔓 Updates on" : "🔒 Updates";
+    btn.classList.toggle('seg-editing', editMode);
+  }
+  function rerenderTabs(){
+    if(window.__renderTab1) window.__renderTab1();
+    if(window.__renderTab2) window.__renderTab2();
+  }
+
+  /* ================= Clear all / I am not sure (route to whichever tab is active) ================= */
+  document.getElementById('clearAllBtnSet').addEventListener('click', ()=>{
+    const fullActive = !document.getElementById('tabFullList').classList.contains('hidden');
+    if(fullActive){ if(window.__clearTab2) window.__clearTab2(); }
+    else{ if(window.__clearTab1) window.__clearTab1(); }
+  });
+  document.getElementById('notSureBtnSet').addEventListener('click', ()=>{
+    const fullActive = !document.getElementById('tabFullList').classList.contains('hidden');
+    if(fullActive){ if(window.__fillTab2) window.__fillTab2(); }
+    else{ if(window.__fillTab1) window.__fillTab1(); }
+  });
+
+  document.getElementById('editModeBtn').addEventListener('click', ()=>{
+    if(editMode){
+      editMode = false;
+    }else{
+      const pass = prompt("Enter password to edit dishes:");
+      if(pass === null) return;
+      if(pass === EDIT_PASSWORD){ editMode = true; }
+      else{ alert("Incorrect password."); }
+    }
+    refreshEditModeUI();
+    rerenderTabs();
+  });
+
+  /* ================= Dish editor modal ================= */
+  function readFileAsDataUrl(file, cb){
+    if(!file || file.type.indexOf('image') !== 0) return;
+    const reader = new FileReader();
+    reader.onload = ()=> compressImage(reader.result, cb);
+    reader.readAsDataURL(file);
+  }
+  // Resize/compress to keep each photo well under Firestore's 1MB document limit
+  // (also makes photos load noticeably faster in the app).
+  function compressImage(dataUrl, cb, maxDim, quality){
+    maxDim = maxDim || 900;
+    quality = quality || 0.72;
+    const img = new Image();
+    img.onload = ()=>{
+      let { width, height } = img;
+      if(width > maxDim || height > maxDim){
+        if(width >= height){ height = Math.round(height * (maxDim/width)); width = maxDim; }
+        else{ width = Math.round(width * (maxDim/height)); height = maxDim; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      let out = canvas.toDataURL('image/jpeg', quality);
+      // If still too large (e.g. very busy image), compress harder once more.
+      if(out.length > 700000 && quality > 0.4){
+        out = canvas.toDataURL('image/jpeg', 0.4);
+      }
+      cb(out);
+    };
+    img.onerror = ()=> cb(dataUrl); // fall back to original if it fails to load as an <img>
+    img.src = dataUrl;
+  }
+  let dmState = { photoDataUrl: undefined, originalName: '', onSave: null };
+  function ensureModalRoot(){
+    let m = document.getElementById('dishModalOverlay');
+    if(m) return m;
+    m = document.createElement('div');
+    m.id = 'dishModalOverlay';
+    m.className = 'modal-overlay hidden';
+    m.innerHTML =
+      '<div class="modal-box">' +
+        '<h3 id="dmTitle">Edit dish</h3>' +
+        '<label class="modal-label">Dish name</label>' +
+        '<input type="text" id="dmName" class="modal-input" placeholder="Dish name">' +
+        '<label class="modal-label">Photo</label>' +
+        '<div class="modal-photo-drop" id="dmPhotoDrop" tabindex="0">' +
+          '<img id="dmPhotoPreview" class="hidden" alt="">' +
+          '<div id="dmPhotoPlaceholder">Click to upload, or paste (Ctrl+V) an image</div>' +
+        '</div>' +
+        '<input type="file" id="dmFileInput" accept="image/*" class="hidden">' +
+        '<div class="modal-actions">' +
+          '<button class="btn btn-ghost" id="dmRemovePhoto">Remove photo</button>' +
+          '<div style="flex:1"></div>' +
+          '<button class="btn btn-ghost" id="dmCancel">Cancel</button>' +
+          '<button class="btn btn-hero" id="dmSave">Save</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(m);
+
+    const img = document.getElementById('dmPhotoPreview');
+    const ph = document.getElementById('dmPhotoPlaceholder');
+    function setPreview(dataUrl){
+      if(dataUrl){ img.src = dataUrl; img.classList.remove('hidden'); ph.classList.add('hidden'); }
+      else{ img.classList.add('hidden'); ph.classList.remove('hidden'); }
+    }
+    document.getElementById('dmPhotoDrop').addEventListener('click', ()=>{
+      document.getElementById('dmFileInput').click();
+    });
+    document.getElementById('dmFileInput').addEventListener('change', (e)=>{
+      const file = e.target.files[0];
+      readFileAsDataUrl(file, (dataUrl)=>{ dmState.photoDataUrl = dataUrl; setPreview(dataUrl); });
+    });
+    document.getElementById('dmRemovePhoto').addEventListener('click', ()=>{
+      dmState.photoDataUrl = null; setPreview(null);
+    });
+    document.getElementById('dmCancel').addEventListener('click', closeDishEditor);
+    m.addEventListener('click', (e)=>{ if(e.target === m) closeDishEditor(); });
+    document.addEventListener('keydown', (e)=>{
+      if(e.key === 'Escape' && !m.classList.contains('hidden')) closeDishEditor();
+    });
+    document.getElementById('dmSave').addEventListener('click', ()=>{
+      const name = document.getElementById('dmName').value.trim();
+      if(!name){ alert("Please enter a dish name."); return; }
+      const cb = dmState.onSave;
+      const photo = dmState.photoDataUrl;
+      closeDishEditor();
+      if(cb) cb(name, photo);
+    });
+    document.addEventListener('paste', (e)=>{
+      if(m.classList.contains('hidden')) return;
+      const items = (e.clipboardData && e.clipboardData.items) || [];
+      for(let i=0;i<items.length;i++){
+        if(items[i].type && items[i].type.indexOf('image')===0){
+          const file = items[i].getAsFile();
+          readFileAsDataUrl(file, (dataUrl)=>{ dmState.photoDataUrl = dataUrl; setPreview(dataUrl); });
+          e.preventDefault();
+          break;
+        }
+      }
+    });
+    return m;
+  }
+  function closeDishEditor(){
+    const m = document.getElementById('dishModalOverlay');
+    if(m) m.classList.add('hidden');
+  }
+  function openDishEditor(opts, onSave){
+    const m = ensureModalRoot();
+    const name = opts.name || '';
+    dmState = { photoDataUrl: undefined, originalName: name, onSave: onSave };
+    document.getElementById('dmTitle').textContent = opts.isNew ? "Add dish" : "Edit dish";
+    document.getElementById('dmName').value = name;
+    const existing = name ? getPhoto(name) : null;
+    const img = document.getElementById('dmPhotoPreview');
+    const ph = document.getElementById('dmPhotoPlaceholder');
+    if(existing){ img.src = existing; img.classList.remove('hidden'); ph.classList.add('hidden'); dmState.photoDataUrl = existing; }
+    else{ img.classList.add('hidden'); ph.classList.remove('hidden'); }
+    m.classList.remove('hidden');
+    setTimeout(()=>{ const inp = document.getElementById('dmName'); inp.focus(); inp.select(); }, 30);
+  }
+
+  /* ================= Dish search ================= */
+  let searchTerm = '';
+  function matchesSearch(text){
+    if(!searchTerm) return true;
+    return normalizeName(text).includes(searchTerm);
+  }
+  const dishSearchInput = document.getElementById('dishSearch');
+  const dishSearchClear = document.getElementById('dishSearchClear');
+  dishSearchInput.addEventListener('input', ()=>{
+    searchTerm = normalizeName(dishSearchInput.value);
+    dishSearchClear.classList.toggle('hidden', !dishSearchInput.value);
+    rerenderTabs();
+  });
+  dishSearchClear.addEventListener('click', ()=>{
+    dishSearchInput.value = '';
+    searchTerm = '';
+    dishSearchClear.classList.add('hidden');
+    rerenderTabs();
+    dishSearchInput.focus();
+  });
+
+  /* ================= Generic localStorage JSON helpers ================= */
+  function loadJSON(key, fallback){
+    try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
+    catch(e){ return fallback; }
+  }
+  function saveJSON(key, value){
+    try{ localStorage.setItem(key, JSON.stringify(value)); }catch(e){ /* storage full, ignore */ }
+  }
+
+  /* ================= Cloud sync (Firestore, falls back to local-only if unavailable) ================= */
+  const cloudDocRef = (typeof db !== 'undefined' && db) ? db.collection('mealPlanner').doc('sharedData') : null;
+  const cloudPhotosCol = (typeof db !== 'undefined' && db) ? db.collection('dishPhotos') : null;
+  // READ-ONLY MODE: mykitchen.html only ever reads from the shared cloud data
+  // once on first launch (see bootstrap at the bottom). It never writes back
+  // and never listens for live changes, so nothing done here can affect the
+  // main site's shared data, and nothing from the main site pushes in later.
+  function cloudPush(field, value){ /* disabled: read-only copy, never writes to shared cloud */ }
+  function cloudListen(onData){ /* disabled: read-only copy, no live listening */ }
+  function cloudPullOnce(){
+    if(!cloudDocRef) return Promise.resolve(null);
+    return cloudDocRef.get().then((snap)=> snap.exists ? snap.data() : null).catch((err)=>{
+      console.warn('Cloud sync: initial pull failed', err);
+      return null;
+    });
+  }
+  // Photos live in their own collection (one small doc per photo) instead of the
+  // shared settings doc, since Firestore caps each document at 1MB.
+  function cloudPullPhotosOnce(){
+    if(!cloudPhotosCol) return Promise.resolve(null);
+    return cloudPhotosCol.get().then((qs)=>{
+      const out = {};
+      qs.forEach((doc)=>{ const d = doc.data(); if(d && d.name) out[d.name] = d.photo; });
+      return out;
+    }).catch((err)=>{
+      console.warn('Cloud sync: initial photo pull failed', err);
+      return null;
+    });
+  }
+  function cloudListenPhotos(onPhotos){ /* disabled: read-only copy, no live listening */ }
+
+  /* ================= TAB 1: Daily Set Menu ================= */
+  (function(){
+    const DAYS = [
+      {id:"mon", label:"Monday", funday:false,
+        fiber:["Ngon su su xào tỏi","Rau bí xào tỏi","Rau lang xào tỏi","Canh rau ngót","Canh cải cúc","Rau cần xào"],
+        protein:["Gà hấp","Gà rang gừng","Cánh/Đùi Gà rán","Gà xào nấm","Gà tẩm bột rán","Gà tần ngải cứu"]},
+      {id:"tue", label:"Tuesday", funday:false,
+        fiber:["Bắp cải luộc","Cải thảo xào nấm","Cải làn xào tỏi","Cải thìa xào nấm","Cải ngọt nấu canh","Cải xoong xào"],
+        protein:["Bò hầm","Bò kho","Bò bít tết","Bò xào hành tây","Bò cari","Bê xào"]},
+      {id:"wed", label:"Wednesday", funday:false,
+        fiber:["Bí đỏ xào tỏi","Bí ngòi xào tỏi","Cà tím đậu phụ","Ngồng cải luộc","Cải chíp xào nấm","Đậu bắp hấp"],
+        protein:["Cá điêu hồng rán","Cá lăng nướng chả","Cá trắm kho giềng","Cá ba sa kho tộ","Cá chép hấp xì dầu","Cá chép om dưa"]},
+      {id:"thu", label:"Thursday", funday:false,
+        fiber:["Rau muống xào tỏi","Mồng tơi xào tỏi","Xúp lơ xanh luộc","Xúp lơ trắng xào","Canh rau đay","Ngó xuân xào tỏi"],
+        protein:["Đậu nhồi thịt","Đậu rán tẩm hành","Đậu phụ thịt băm","Trứng tráng hành củ","Trứng rán (ốp la)","Lợn quay"]},
+      {id:"fri", label:"Friday", funday:false,
+        fiber:["Cải xanh xào","Su su xào","Mướp xào giá","Bầu nấu tôm","Bí xanh xào tỏi","Mướp đắng nhồi thịt"],
+        protein:["Tôm sú hấp","Tôm rim","Tôm xào nấm","Đùi/Cánh gà rán","Lẩu gà thuốc bắc","Gà nấu cari"]},
+      {id:"sat", label:"Saturday", funday:false,
+        fiber:["Rau dền luộc","Cà rốt / Củ cải luộc","Lặc lè/mướp nhật luộc","Xu hào xào","Đậu rồng luộc","Cải bó xôi xào"],
+        protein:["Cá hồi nướng","Cá tầm rang muối","Cá thu rán","Cá nục kho","Cá diếc kho","Cá tầm canh chua"]},
+      {id:"sun", label:"Sunday", funday:false,
+        fiber:["Xà lách, cà chua, dưa leo","Đậu xanh/Đậu vàng xào","Đậu đũa xào","Măng tây xào","Canh nấm","Canh dọc mùng"],
+        protein:["Trứng đúc thịt băm","Thăn/nọng rán","Dọi kho trứng","Ba chỉ rang cháy cạnh","Chân giò giả cầy","Sườn chua ngọt"]},
+      {id:"fun", label:"Funday", funday:true,
+        fiber:["Khoai sọ nấu sườn","Cà tím dài om thịt băm","Salad gà + hành tây","Nộm hoa chuối","Bắp cải tím trộn dầu dấm","Cải kale nấu canh"],
+        protein:["Cá lóc kho khô","Cá lăng+thịt dọi","Cá mòi kho nhừ","Tôm hoàng bào","Trứng cút kho thịt","Trứng cà chua"]}
+    ];
+
+    const DAILY_DISH_KEY = 'qakitchenDailyDishes_v1';
+    const savedDaily = loadJSON(DAILY_DISH_KEY, null);
+    if(savedDaily){
+      DAYS.forEach(day=>{
+        if(savedDaily[day.id]){
+          if(Array.isArray(savedDaily[day.id].fiber) && savedDaily[day.id].fiber.length===6) day.fiber = savedDaily[day.id].fiber;
+          if(Array.isArray(savedDaily[day.id].protein) && savedDaily[day.id].protein.length===6) day.protein = savedDaily[day.id].protein;
+        }
+      });
+    }
+    function saveDailyDishes(){
+      const out = {};
+      DAYS.forEach(day=>{ out[day.id] = {fiber:day.fiber, protein:day.protein}; });
+      saveJSON(DAILY_DISH_KEY, out);
+      cloudPush('dailyDishes', out);
+    }
+
+    let selections = {};
+    DAYS.forEach(d=> selections[d.id] = {fiber:{idx:null,custom:null}, protein:{idx:null,custom:null}});
+    let currentDay = (new Date().getDay() + 6) % 7; // 0=Mon...6=Sun, defaults to today
+    function pushSelections(){ cloudPush('selectionsTab1', selections); }
+
+    function displayText(day, cat){
+      const sel = selections[day.id][cat];
+      if(sel.custom) return sel.custom;
+      if(sel.idx!==null) return day[cat][sel.idx];
+      return null;
+    }
+
+    function renderDayTabs(){
+      const tabs = document.getElementById('scDayTabs');
+      tabs.innerHTML = "";
+      DAYS.forEach((day, idx)=>{
+        const btn = document.createElement('button');
+        btn.className = "day-tab" + (idx===currentDay ? " active":"");
+        btn.textContent = day.label;
+        btn.addEventListener('click', ()=>{ currentDay = idx; renderAll(); });
+        tabs.appendChild(btn);
+      });
+      document.getElementById('scPrevDay').disabled = currentDay===0;
+      document.getElementById('scNextDay').disabled = currentDay===DAYS.length-1;
+    }
+
+    function renderDays(){
+      const wrap = document.getElementById('scDaysList');
+      wrap.innerHTML = "";
+      const day = DAYS[currentDay];
+
+      const card = document.createElement('div');
+      card.className = "day-card" + (day.funday? " funday":"");
+      card.innerHTML = `
+        <div class="day-top">
+          <p class="day-name">${day.label}${day.funday? '<span class="tag">wildcard</span>':''}</p>
+          <div class="day-actions">
+            <button class="mini-btn" data-act="shuffle" data-day="${day.id}">Shuffle day</button>
+            <button class="mini-btn" data-act="clear" data-day="${day.id}">Clear</button>
+          </div>
+        </div>
+        <div class="cats">
+          <div class="cat-block fiber">
+            <h3><span class="dot"></span>Fiber</h3>
+            <div class="opt-list" data-day="${day.id}" data-cat="fiber"></div>
+          </div>
+          <div class="cat-block protein">
+            <h3><span class="dot"></span>Protein</h3>
+            <div class="opt-list" data-day="${day.id}" data-cat="protein"></div>
+          </div>
+        </div>`;
+      wrap.appendChild(card);
+
+      ["fiber","protein"].forEach(cat=>{
+        const listEl = card.querySelector(`.opt-list[data-cat="${cat}"]`);
+        day[cat].forEach((text, idx)=>{
+          if(!matchesSearch(text)) return;
+          const btn = document.createElement('button');
+          const isSel = selections[day.id][cat].idx === idx && !selections[day.id][cat].custom;
+          btn.className = "opt" + (isSel? " selected":"");
+          const thumb = getPhoto(text) ? `<img class="opt-thumb" src="${getPhoto(text)}" alt="">` : "";
+          btn.innerHTML = `<span class="num">${idx+1}</span>${thumb}<span class="opt-text">${escapeHtml(text)}</span><span class="check">✓</span>` + (editMode ? `<span class="opt-edit" title="Edit dish">✎</span>` : "");
+          btn.addEventListener('click', ()=>{
+            const cur = selections[day.id][cat];
+            const nowSelecting = !(cur.idx===idx && !cur.custom);
+            selections[day.id][cat] = nowSelecting ? {idx:idx,custom:null} : {idx:null,custom:null};
+            if(nowSelecting) showDishPhoto(text); else hideDishPhoto();
+            pushSelections();
+            renderAll();
+          });
+          if(editMode){
+            const editIcon = btn.querySelector('.opt-edit');
+            editIcon.addEventListener('click', (e)=>{
+              e.stopPropagation();
+              openDishEditor({name:text, isNew:false}, (newName, newPhoto)=>{
+                applyPhotoEdit(text, newName, newPhoto);
+                day[cat][idx] = newName;
+                saveDailyDishes();
+                renderAll();
+              });
+            });
+          }
+          listEl.appendChild(btn);
+        });
+        if(searchTerm && listEl.children.length===0){
+          listEl.innerHTML = `<p style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft);margin:4px 0;">No matches</p>`;
+        }
+      });
+
+      card.querySelector('[data-act="shuffle"]').addEventListener('click', ()=>{
+        selections[day.id].fiber = {idx: Math.floor(Math.random()*6), custom:null};
+        selections[day.id].protein = {idx: Math.floor(Math.random()*6), custom:null};
+        pushSelections();
+        renderAll();
+      });
+      card.querySelector('[data-act="clear"]').addEventListener('click', ()=>{
+        selections[day.id] = {fiber:{idx:null,custom:null}, protein:{idx:null,custom:null}};
+        pushSelections();
+        renderAll();
+      });
+    }
+
+    document.getElementById('scPrevDay').addEventListener('click', ()=>{
+      if(currentDay>0){ currentDay--; renderAll(); }
+    });
+    document.getElementById('scNextDay').addEventListener('click', ()=>{
+      if(currentDay<DAYS.length-1){ currentDay++; renderAll(); }
+    });
+
+    function startEdit(span, day, cat){
+      const current = displayText(day, cat) || "";
+      const input = document.createElement('input');
+      input.type = "text";
+      input.value = current;
+      input.placeholder = "Type a dish…";
+      span.replaceWith(input);
+      input.focus();
+      input.select();
+      function commit(){
+        const val = input.value.trim();
+        selections[day.id][cat] = val ? {idx:null, custom:val} : {idx:null, custom:null};
+        pushSelections();
+        renderAll();
+      }
+      input.addEventListener('blur', commit);
+      input.addEventListener('keydown', (e)=>{
+        if(e.key==='Enter'){ e.preventDefault(); input.blur(); }
+        if(e.key==='Escape'){ e.preventDefault(); renderAll(); }
+      });
+    }
+
+    function renderReceipt(){
+      const body = document.getElementById('scRBody');
+      const sub = document.getElementById('scRSub');
+      const count = document.getElementById('scRCount');
+      body.innerHTML = "";
+      let complete = 0;
+      DAYS.forEach(day=>{
+        const fText = displayText(day, 'fiber');
+        const pText = displayText(day, 'protein');
+        const row = document.createElement('div');
+        row.className = "rrow";
+        row.innerHTML = `<span class="rday">${day.label}</span><span class="rpicks"></span>`;
+        const picks = row.querySelector('.rpicks');
+
+        const fSpan = document.createElement('span');
+        fSpan.className = "val-edit " + (fText ? "fp" : "empty");
+        fSpan.textContent = fText || "—";
+        fSpan.title = "Click to type a dish"; fSpan.addEventListener('click', ()=> startEdit(fSpan, day, 'fiber'));
+        picks.appendChild(fSpan);
+        picks.appendChild(document.createElement('br'));
+        const pSpan = document.createElement('span');
+        pSpan.className = "val-edit " + (pText ? "pp" : "empty");
+        pSpan.textContent = pText || "—";
+        pSpan.title = "Click to type a dish"; pSpan.addEventListener('click', ()=> startEdit(pSpan, day, 'protein'));
+        picks.appendChild(pSpan);
+
+        body.appendChild(row);
+        if(fText && pText) complete++;
+      });
+      sub.textContent = complete ? `— ${complete} of ${DAYS.length} days set —` : "— pick to fill - click to type —";
+      count.textContent = complete===DAYS.length ? "Full week planned ✓" : (DAYS.length-complete) + " day" + (DAYS.length-complete===1?"":"s") + " left to choose";
+    }
+
+    function fillWeekSet(){
+      DAYS.forEach(day=>{
+        selections[day.id].fiber = {idx: Math.floor(Math.random()*6), custom:null};
+        selections[day.id].protein = {idx: Math.floor(Math.random()*6), custom:null};
+      });
+      pushSelections();
+      renderAll();
+    }
+    window.__fillTab1 = fillWeekSet;
+    document.getElementById('scReceiptTitle').addEventListener('click', fillWeekSet);
+    window.__clearTab1 = function(){
+      DAYS.forEach(day=> selections[day.id] = {fiber:{idx:null,custom:null}, protein:{idx:null,custom:null}});
+      pushSelections();
+      renderAll();
+    };
+    document.getElementById('scCopyBtn').addEventListener('click', async ()=>{
+      let text = "This Week's Menu\n\n";
+      DAYS.forEach(day=>{
+        const f = displayText(day, 'fiber') || "—";
+        const p = displayText(day, 'protein') || "—";
+        text += day.label + "\n  Fiber: " + f + "\n  Protein: " + p + "\n\n";
+      });
+      const btn = document.getElementById('scCopyBtn');
+      try{
+        await navigator.clipboard.writeText(text);
+        const orig = btn.textContent;
+        btn.textContent = "Copied ✓";
+        setTimeout(()=>{ btn.textContent = orig; }, 1400);
+      }catch(err){
+        const orig = btn.textContent;
+        btn.textContent = "Couldn't copy";
+        setTimeout(()=>{ btn.textContent = orig; }, 1400);
+      }
+    });
+
+    function renderAll(){ renderDayTabs(); renderDays(); renderReceipt(); }
+    window.__renderTab1 = renderAll;
+    window.__applyRemoteTab1 = function(data){
+      if(data.dailyDishes){
+        DAYS.forEach(day=>{
+          const d = data.dailyDishes[day.id];
+          if(d){
+            if(Array.isArray(d.fiber) && d.fiber.length===6) day.fiber = d.fiber;
+            if(Array.isArray(d.protein) && d.protein.length===6) day.protein = d.protein;
+          }
+        });
+        saveJSON(DAILY_DISH_KEY, data.dailyDishes);
+      }
+      if(data.selectionsTab1){
+        DAYS.forEach(day=>{
+          if(data.selectionsTab1[day.id]) selections[day.id] = data.selectionsTab1[day.id];
+        });
+      }
+      renderAll();
+    };
+    renderAll();
+  })();
+
+  /* ================= TAB 2: Full List Builder ================= */
+  (function(){
+    const MASTER_FIBER = [
+      "Rau Muống","Cải bắp / Cải tím","Cải xanh / Cải ngọt","Cải thảo trắng / tím","Cải thìa / cải cúc",
+      "Bó xôi / Cải xoăn","Cải ngồng / Cải làn","Cải bẹ trắng/xanh","Rau ngót","Dền đỏ / trắng",
+      "Đay / Mồng tơi","Ngọn Khoai / su su / Rau bí","Salad / Rau diếp","Lơ trắng / Lơ xanh","Củ cải / Cà rốt / Su hào",
+      "Bí xanh","Bí đỏ","Bí ngòi xanh / vàng","Bầu / Susu","Mướp ngọt / mướp đắng",
+      "Lặc lè / Mướp nhật","Đậu xanh / Đậu vàng / Đậu đũa","Đậu bắp / Đậu rồng","Ớt chuông xanh/đỏ/vàng","Cà tím / Cà chua",
+      "Cải xoong","Rau cần / Rau rút","Dưa chuột / Bơ","Giá đỗ / Kim Chi","Hành tây / tỏi tây / cần tây",
+      "Măng tây / Ngải cứu","Thiên lý / Nấm","Khoai môn/mỡ/sọ - Khoai tây","Củ dền / củ cải đỏ",
+      "Rau ngót thịt băm","Canh măng","Canh Dưa","Canh kim chi","Salad bơ-chân vịt-rocket",
+      "Canh củ sen","Canh cà chua","Canh rau tập tàng, rau rệu","Canh Dọc mùng","Mầm đá","Rau rút, củ niễng, bồng khoai"
+    ];
+    const MASTER_PROTEIN = [
+      "Tôm rang / hấp / rán","Trứng đúc thịt","Gà rang gừng / kho nghệ","Chả / lá lốt / sương sông","Cá lăng / Trê / Ba sa",
+      "Gà xào nấm","3 chỉ cháy cạnh / kho trứng","Cá trắm / Chép / Mè","Trứng cà chua","Gà cari",
+      "Nạc vai rim mắm / rán","Cá rô / Điêu hồng","Cá tầm bột rán","Lợn rán","Cá nục / thu",
+      "Đậu thịt băm","Gà quay / hấp","Chân giò hầm","Cá quả / Cá trê / Cá trôi","Đậu rán tẩm hành",
+      "Gà salad hành tây","Bò cari / sốt vang","Cá hồi / Cá ngừ","Trứng gà cà chua","Gà tần ngải cứu",
+      "Bò kho / Bò xào","Đùi gà rán","Thịt luộc / Đậu luộc","Cá diếc","Trứng rán - kho",
+      "Cánh gà rán","Thịt bằm rang mắm","Chân giò giả cầy","Lợn rim cà chua",
+      "Thịt thăn chiên xù","Vịt om sấu","Ngan cháy tỏi","Thịt viên rán",
+      "Đậu nhồi thịt","Cá mòi, cá trích","Bê các món","Lòng, gan, cật, dạ dày, tim, nội tạng","Tai, mũi, lưỡi","Sashimi / Sushi","Sườn nướng / chua ngọt"
+    ];
+
+    const DAY_LABELS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+    const DAYS = DAY_LABELS.map((label,i)=>({id:"d"+i, label}));
+
+    const MASTER_LISTS_KEY = 'qakitchenMasterLists_v1';
+    const savedMaster = loadJSON(MASTER_LISTS_KEY, null);
+    if(savedMaster){
+      if(Array.isArray(savedMaster.fiber) && savedMaster.fiber.length){ MASTER_FIBER.length = 0; MASTER_FIBER.push(...savedMaster.fiber); }
+      if(Array.isArray(savedMaster.protein) && savedMaster.protein.length){ MASTER_PROTEIN.length = 0; MASTER_PROTEIN.push(...savedMaster.protein); }
+    }
+    function saveMasterLists(){
+      saveJSON(MASTER_LISTS_KEY, {fiber:MASTER_FIBER, protein:MASTER_PROTEIN});
+      cloudPush('masterLists', {fiber:MASTER_FIBER, protein:MASTER_PROTEIN});
+    }
+
+    /* ================= Export Full List to Excel ================= */
+    let xlsxLoadPromise = null;
+    function loadSheetJS(){
+      if(window.XLSX) return Promise.resolve();
+      if(xlsxLoadPromise) return xlsxLoadPromise;
+      xlsxLoadPromise = new Promise((resolve, reject)=>{
+        const script = document.createElement('script');
+        script.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+        script.onload = ()=> resolve();
+        script.onerror = ()=> reject(new Error("Failed to load Excel export library"));
+        document.head.appendChild(script);
+      });
+      return xlsxLoadPromise;
+    }
+    async function exportFullListToExcel(){
+      const btn = document.getElementById('flExportBtn');
+      const originalText = btn.textContent;
+      btn.textContent = "Loading…";
+      btn.disabled = true;
+      try{
+        await loadSheetJS();
+        const rows = [["#","Fiber","Protein"]];
+        const maxLen = Math.max(MASTER_FIBER.length, MASTER_PROTEIN.length);
+        for(let i=0;i<maxLen;i++){
+          rows.push([i+1, MASTER_FIBER[i] || "", MASTER_PROTEIN[i] || ""]);
+        }
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+        ws['!cols'] = [{wch:4},{wch:40},{wch:40}];
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Full List");
+        const today = new Date().toISOString().slice(0,10);
+        XLSX.writeFile(wb, `full-list-${today}.xlsx`);
+      }catch(err){
+        alert("Couldn't export to Excel: " + err.message);
+      }finally{
+        btn.textContent = originalText;
+        btn.disabled = false;
+      }
+    }
+
+    let selections = {};
+    DAYS.forEach(d=> selections[d.id] = {fiber:null, protein:null});
+    let currentDay = (new Date().getDay() + 6) % 7; // 0=Mon...6=Sun, defaults to today
+    function pushSelections(){ cloudPush('selectionsTab2', selections); }
+
+    function renderDayTabs(){
+      const tabs = document.getElementById('flDayTabs');
+      tabs.innerHTML = "";
+      DAYS.forEach((day, idx)=>{
+        const btn = document.createElement('button');
+        btn.className = "day-tab" + (idx===currentDay ? " active":"");
+        btn.textContent = day.label;
+        btn.addEventListener('click', ()=>{ currentDay = idx; renderAll(); });
+        tabs.appendChild(btn);
+      });
+      document.getElementById('flPrevDay').disabled = currentDay===0;
+      document.getElementById('flNextDay').disabled = currentDay===DAYS.length-1;
+    }
+
+    function renderDays(){
+      const wrap = document.getElementById('flDaysList');
+      wrap.innerHTML = "";
+      const day = DAYS[currentDay];
+      const sel = selections[day.id];
+
+      const card = document.createElement('div');
+      card.className = "day-card";
+      card.innerHTML = `
+        <div class="day-top">
+          <p class="day-name">${day.label}</p>
+          <div class="day-actions">
+            <button class="mini-btn" data-act="shuffle" data-day="${day.id}">Shuffle day</button>
+            <button class="mini-btn" data-act="clear" data-day="${day.id}">Clear</button>
+            <button class="mini-btn" id="flExportBtn">⬇ Export to Excel</button>
+          </div>
+        </div>
+        <div class="cats">
+          <div class="cat-block fiber">
+            <h3><span class="dot"></span>Fiber</h3>
+            <div class="opt-list" data-cat="fiber"></div>
+          </div>
+          <div class="cat-block protein">
+            <h3><span class="dot"></span>Protein</h3>
+            <div class="opt-list" data-cat="protein"></div>
+          </div>
+        </div>`;
+      const cats = card.querySelector('.cats');
+
+      const pools = {fiber: MASTER_FIBER, protein: MASTER_PROTEIN};
+      ["fiber","protein"].forEach(cat=>{
+        const listEl = cats.querySelector(`.opt-list[data-cat="${cat}"]`);
+        pools[cat].forEach((text, idx)=>{
+          if(!matchesSearch(text)) return;
+          const btn = document.createElement('button');
+          const isSel = sel[cat] === text;
+          btn.className = "opt" + (isSel? " selected":"");
+          const thumb = getPhoto(text) ? `<img class="opt-thumb" src="${getPhoto(text)}" alt="">` : "";
+          btn.innerHTML = `<span class="num">${idx+1}</span>${thumb}<span class="opt-text">${escapeHtml(text)}</span><span class="check">✓</span>` + (editMode ? `<span class="opt-edit" title="Edit dish">✎</span>` : "");
+          btn.addEventListener('click', ()=>{
+            const nowSelecting = selections[day.id][cat] !== text;
+            selections[day.id][cat] = nowSelecting ? text : null;
+            if(nowSelecting) showDishPhoto(text); else hideDishPhoto();
+            pushSelections();
+            renderAll();
+          });
+          if(editMode){
+            const editIcon = btn.querySelector('.opt-edit');
+            editIcon.addEventListener('click', (e)=>{
+              e.stopPropagation();
+              openDishEditor({name:text, isNew:false}, (newName, newPhoto)=>{
+                applyPhotoEdit(text, newName, newPhoto);
+                pools[cat][idx] = newName;
+                DAYS.forEach(d=>{
+                  if(selections[d.id][cat] === text) selections[d.id][cat] = newName;
+                });
+                saveMasterLists();
+                renderAll();
+              });
+            });
+          }
+          listEl.appendChild(btn);
+        });
+        if(searchTerm && listEl.children.length===0){
+          listEl.innerHTML = `<p style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft);margin:4px 0;">No matches</p>`;
+        }
+        if(editMode){
+          const addBtn = document.createElement('button');
+          addBtn.className = "opt opt-add";
+          addBtn.innerHTML = `<span class="num">+</span><span class="opt-text">Add dish</span>`;
+          addBtn.addEventListener('click', ()=>{
+            openDishEditor({name:"", isNew:true}, (newName, newPhoto)=>{
+              if(pools[cat].includes(newName)){ alert("This dish already exists."); return; }
+              pools[cat].push(newName);
+              if(newPhoto) setPhoto(newName, newPhoto);
+              saveMasterLists();
+              renderAll();
+            });
+          });
+          listEl.appendChild(addBtn);
+        }
+      });
+
+      card.querySelector('[data-act="shuffle"]').addEventListener('click', ()=>{
+        selections[day.id].fiber = MASTER_FIBER[Math.floor(Math.random()*MASTER_FIBER.length)];
+        selections[day.id].protein = MASTER_PROTEIN[Math.floor(Math.random()*MASTER_PROTEIN.length)];
+        pushSelections();
+        renderAll();
+      });
+      card.querySelector('[data-act="clear"]').addEventListener('click', ()=>{
+        selections[day.id] = {fiber:null, protein:null};
+        pushSelections();
+        renderAll();
+      });
+      card.querySelector('#flExportBtn').addEventListener('click', exportFullListToExcel);
+
+      wrap.appendChild(card);
+    }
+
+    document.getElementById('flPrevDay').addEventListener('click', ()=>{
+      if(currentDay>0){ currentDay--; renderAll(); }
+    });
+    document.getElementById('flNextDay').addEventListener('click', ()=>{
+      if(currentDay<DAYS.length-1){ currentDay++; renderAll(); }
+    });
+
+    function startEdit(span, day, cat){
+      const current = selections[day.id][cat] || "";
+      const input = document.createElement('input');
+      input.type = "text";
+      input.value = current;
+      input.placeholder = "Type a dish…";
+      span.replaceWith(input);
+      input.focus();
+      input.select();
+      function commit(){
+        const val = input.value.trim();
+        selections[day.id][cat] = val || null;
+        pushSelections();
+        renderAll();
+      }
+      input.addEventListener('blur', commit);
+      input.addEventListener('keydown', (e)=>{
+        if(e.key==='Enter'){ e.preventDefault(); input.blur(); }
+        if(e.key==='Escape'){ e.preventDefault(); renderAll(); }
+      });
+    }
+
+    function renderReceipt(){
+      const body = document.getElementById('flRBody');
+      const sub = document.getElementById('flRSub');
+      const count = document.getElementById('flRCount');
+      body.innerHTML = "";
+      let complete = 0;
+      DAYS.forEach(day=>{
+        const sel = selections[day.id];
+        const row = document.createElement('div');
+        row.className = "rrow";
+        row.innerHTML = `<span class="rday">${day.label.slice(0,3)}</span><span class="rpicks"></span>`;
+        const picks = row.querySelector('.rpicks');
+
+        const fSpan = document.createElement('span');
+        fSpan.className = "val-edit " + (sel.fiber ? "fp" : "empty");
+        fSpan.textContent = sel.fiber || "—";
+        fSpan.title = "Click to type a dish"; fSpan.addEventListener('click', ()=> startEdit(fSpan, day, 'fiber'));
+        picks.appendChild(fSpan);
+        picks.appendChild(document.createElement('br'));
+        const pSpan = document.createElement('span');
+        pSpan.className = "val-edit " + (sel.protein ? "pp" : "empty");
+        pSpan.textContent = sel.protein || "—";
+        pSpan.title = "Click to type a dish"; pSpan.addEventListener('click', ()=> startEdit(pSpan, day, 'protein'));
+        picks.appendChild(pSpan);
+
+        body.appendChild(row);
+        if(sel.fiber && sel.protein) complete++;
+      });
+      sub.textContent = complete ? `— ${complete} of ${DAYS.length} days set —` : "— pick to fill - click to type —";
+      count.textContent = complete===DAYS.length ? "Full week planned ✓" : (DAYS.length-complete) + " day" + (DAYS.length-complete===1?"":"s") + " left to choose";
+    }
+
+    function fillWeekFull(){
+      const fiberPool = shuffled(MASTER_FIBER);
+      const proteinPool = shuffled(MASTER_PROTEIN);
+      DAYS.forEach((day,i)=>{
+        selections[day.id].fiber = fiberPool[i % fiberPool.length];
+        selections[day.id].protein = proteinPool[i % proteinPool.length];
+      });
+      pushSelections();
+      renderAll();
+    }
+    window.__fillTab2 = fillWeekFull;
+    document.getElementById('flReceiptTitle').addEventListener('click', fillWeekFull);
+    window.__clearTab2 = function(){
+      DAYS.forEach(day=> selections[day.id] = {fiber:null, protein:null});
+      pushSelections();
+      renderAll();
+    };
+    document.getElementById('flCopyBtn').addEventListener('click', async ()=>{
+      let text = "This Week's Menu\n\n";
+      DAYS.forEach(day=>{
+        const sel = selections[day.id];
+        text += day.label + "\n  Fiber: " + (sel.fiber||"—") + "\n  Protein: " + (sel.protein||"—") + "\n\n";
+      });
+      const btn = document.getElementById('flCopyBtn');
+      try{
+        await navigator.clipboard.writeText(text);
+        const orig = btn.textContent;
+        btn.textContent = "Copied ✓";
+        setTimeout(()=>{ btn.textContent = orig; }, 1400);
+      }catch(err){
+        const orig = btn.textContent;
+        btn.textContent = "Couldn't copy";
+        setTimeout(()=>{ btn.textContent = orig; }, 1400);
+      }
+    });
+
+    function renderAll(){ renderDayTabs(); renderDays(); renderReceipt(); }
+    window.__renderTab2 = renderAll;
+    window.__applyRemoteTab2 = function(data){
+      if(data.masterLists){
+        if(Array.isArray(data.masterLists.fiber) && data.masterLists.fiber.length){ MASTER_FIBER.length = 0; MASTER_FIBER.push(...data.masterLists.fiber); }
+        if(Array.isArray(data.masterLists.protein) && data.masterLists.protein.length){ MASTER_PROTEIN.length = 0; MASTER_PROTEIN.push(...data.masterLists.protein); }
+        saveJSON(MASTER_LISTS_KEY, data.masterLists);
+      }
+      if(data.selectionsTab2){
+        DAYS.forEach(day=>{
+          if(data.selectionsTab2[day.id]) selections[day.id] = data.selectionsTab2[day.id];
+        });
+      }
+      renderAll();
+    };
+    renderAll();
+  })();
+
+  /* ================= Lock sidebar height to the Daily-tab size ================= */
+  function syncReceiptHeight(){
+    const mainCol = document.querySelector('.main-col');
+    const receiptCol = document.querySelector('.receipt-col');
+    const dailyHidden = document.getElementById('tabSetChoices').classList.contains('hidden');
+    if(!mainCol || !receiptCol) return;
+    if(!dailyHidden){
+      // Daily tab is active: its height is constant (always 6 fiber + 6 protein items),
+      // so measure it and lock the sidebar to match.
+      receiptCol.style.height = mainCol.getBoundingClientRect().height + 'px';
+    }
+    // When Full List is active, receiptCol keeps whatever height was last locked in
+    // (it does not grow to match Full List's much taller master-list content).
+  }
+  window.__syncReceiptHeight = syncReceiptHeight;
+  window.addEventListener('resize', syncReceiptHeight);
+  window.addEventListener('load', syncReceiptHeight);
+  syncReceiptHeight();
+  setTimeout(syncReceiptHeight, 60);
+
+  /* ================= One-time read-only cloud sync (first load only) ================= */
+  function applyRemoteData(data){
+    if(!data) return;
+    if(window.__applyRemoteTab1) window.__applyRemoteTab1(data);
+    if(window.__applyRemoteTab2) window.__applyRemoteTab2(data);
+    if(window.__syncReceiptHeight) setTimeout(window.__syncReceiptHeight, 0);
+  }
+  function applyRemotePhotos(photos){
+    if(!photos) return;
+    dishPhotos = photos;
+    try{ localStorage.setItem(PHOTO_KEY, JSON.stringify(dishPhotos)); }catch(e){}
+    if(window.__renderTab1) window.__renderTab1();
+    if(window.__renderTab2) window.__renderTab2();
+  }
+  const FIRST_LOAD_KEY = 'qakitchenInitialSyncDone_v1';
+  let alreadySynced = false;
+  try{ alreadySynced = localStorage.getItem(FIRST_LOAD_KEY) === 'yes'; }catch(e){}
+  if(!alreadySynced){
+    // Pull today's dishes/photos ONE TIME so this copy starts where the main
+    // site currently is. Nothing is ever written back, and no live listener
+    // is attached — after this succeeds once, mykitchen.html is fully
+    // independent and local-only from then on (matches the flag below).
+    Promise.all([cloudPullOnce(), cloudPullPhotosOnce()]).then(([data, photos])=>{
+      let gotSomething = false;
+      if(data){ applyRemoteData(data); gotSomething = true; }
+      if(photos){ applyRemotePhotos(photos); gotSomething = true; }
+      if(gotSomething){
+        try{ localStorage.setItem(FIRST_LOAD_KEY, 'yes'); }catch(e){}
+      }
+      // If nothing came through (e.g. no internet on first open), we simply
+      // try again next time she opens the app — until it succeeds once.
+    });
+  }
+
+})();
+</script>
+
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./sw.js").catch((err) => {
+        console.warn("Service worker registration failed:", err);
+      });
+    });
+  }
+</script>
+</body>
+</html>

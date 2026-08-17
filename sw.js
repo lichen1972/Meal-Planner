@@ -1,12 +1,14 @@
 // Weekly Meal Planner — offline cache
-// NOTE: index.html is now served "network-first" (see fetch handler below),
-// so you do NOT need to bump CACHE_NAME just because index.html changed.
-// Only bump this if you rename/add/remove files in APP_SHELL below.
-const CACHE_NAME = "meal-planner-cache-v10";
+// NOTE: HTML pages are served "network-first" (see fetch handler below),
+// so you do NOT need to bump CACHE_NAME just because index.html/mykitchen.html
+// changed. Only bump this if you rename/add/remove files in APP_SHELL below.
+const CACHE_NAME = "meal-planner-cache-v13";
 
 const APP_SHELL = [
   "./",
   "./index.html",
+  "./mykitchen.html",
+  "./qakitchen.html",
   "./manifest.json",
   "./icon-192.png",
   "./icon-512.png",
@@ -37,11 +39,11 @@ self.addEventListener("activate", (event) => {
 });
 
 // Fetch:
-// - HTML page (navigations, and index.html itself): NETWORK-FIRST.
+// - HTML pages (navigations, index.html, mykitchen.html): NETWORK-FIRST.
 //   Always try to get the latest version. Only fall back to the cached
-//   copy if the network request fails (i.e. you're offline). This means
-//   deploying a new index.html shows up immediately on a normal reload —
-//   no more manual cache-version bumping, no more hard refresh needed.
+//   copy of THAT SPECIFIC page if the network request fails (i.e. offline).
+//   This means deploying updates shows up immediately on a normal reload —
+//   no manual cache-version bumping, no hard refresh needed.
 // - Other same-origin files (manifest, icons): CACHE-FIRST, since they
 //   rarely change and this keeps the app opening instantly offline.
 // - Cross-origin requests (Google Fonts, etc.): network-first, cache fallback.
@@ -51,11 +53,13 @@ self.addEventListener("fetch", (event) => {
   const isHTML =
     event.request.mode === "navigate" ||
     (event.request.headers.get("accept") || "").includes("text/html") ||
-    url.pathname.endsWith("/index.html") ||
+    url.pathname.endsWith(".html") ||
     url.pathname.endsWith("/");
 
   if (isSameOrigin && isHTML) {
-    // Network-first for the page itself.
+    // Network-first for HTML pages — falls back to THIS page's own cached
+    // copy if offline (not a different page), so index.html and mykitchen.html
+    // each reliably serve their own content when offline.
     event.respondWith(
       fetch(event.request)
         .then((response) => {
