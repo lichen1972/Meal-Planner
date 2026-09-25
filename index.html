@@ -298,10 +298,23 @@
 
   /* ---------- Fullscreen photo viewer ---------- */
   .board-photo{ cursor:zoom-in; }
-  .photo-full{ position:fixed; inset:0; z-index:9999; background:rgba(20,15,10,0.94); display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:zoom-out; opacity:0; pointer-events:none; transition:opacity .2s; }
+  .photo-full{ position:fixed; inset:0; z-index:9999; background:rgba(20,15,10,0.94); display:flex; flex-direction:column; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity .2s; padding:60px 16px 24px; }
   .photo-full.show{ opacity:1; pointer-events:auto; }
-  .photo-full img{ max-width:96vw; max-height:86vh; object-fit:contain; border-radius:6px; box-shadow:0 10px 40px rgba(0,0,0,0.5); }
-  .photo-full-name{ margin-top:14px; color:#fffdf6; font-family:'IBM Plex Mono',monospace; font-size:15px; letter-spacing:.04em; text-align:center; padding:0 16px; }
+  .photo-full img{ max-width:min(92vw,900px); max-height:68vh; object-fit:contain; border-radius:6px; box-shadow:0 10px 40px rgba(0,0,0,0.5); user-select:none; -webkit-user-drag:none; }
+  .pf-empty{ width:min(80vw,420px); aspect-ratio:4/3; border:2px dashed rgba(255,253,246,0.35); border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; color:rgba(255,253,246,0.7); font-family:'IBM Plex Mono',monospace; font-size:14px; gap:8px; }
+  .pf-empty .icon{ font-size:40px; opacity:.6; }
+  .photo-full-name{ margin-top:14px; color:#fffdf6; font-family:'Fraunces',serif; font-weight:600; font-size:22px; text-align:center; }
+  .pf-count{ position:absolute; top:20px; left:20px; color:rgba(255,253,246,0.7); font-family:'IBM Plex Mono',monospace; font-size:13px; }
+  .pf-btn{ position:absolute; background:rgba(255,253,246,0.14); color:#fffdf6; border:1px solid rgba(255,253,246,0.3); border-radius:50%; width:48px; height:48px; font-size:22px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .pf-btn:hover{ background:rgba(255,253,246,0.26); }
+  .pf-btn:disabled{ opacity:.25; cursor:default; }
+  .pf-close{ top:14px; right:14px; }
+  .pf-prev{ left:14px; top:50%; transform:translateY(-50%); }
+  .pf-next{ right:14px; top:50%; transform:translateY(-50%); }
+  .pf-pick{ margin-top:16px; background:var(--protein); color:#fffdf6; border:none; border-radius:999px; padding:12px 28px; font-family:'Inter',sans-serif; font-weight:700; font-size:16px; cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,0.35); }
+  .pf-pick.picked{ background:var(--fiber); }
+  .pf-pick:hover{ filter:brightness(1.08); }
+  @media (max-width:640px){ .pf-prev{ left:6px; } .pf-next{ right:6px; } .pf-btn{ width:42px; height:42px; } }
 </style>
 </head>
 <body>
@@ -356,13 +369,13 @@
       <!-- ===================== TAB 1: Daily Set Menu ===================== -->
       <div id="tabSetChoices">
         <div class="days" id="scDaysList"></div>
-        <footer class="note">Tap an item to choose it. Tap it again to clear that pick.</footer>
+        <footer class="note">Tap a dish to see its photo, then tap “Pick this dish”.</footer>
       </div>
 
       <!-- ===================== TAB 2: Full List Builder ===================== -->
       <div id="tabFullList" class="hidden">
         <div class="days" id="flDaysList"></div>
-        <footer class="note">Tap an item to choose it. Tap it again to clear that pick.</footer>
+        <footer class="note">Tap a dish to see its photo, then tap “Pick this dish”.</footer>
       </div>
     </div>
 
@@ -917,12 +930,23 @@
           const thumb = getPhoto(text) ? `<img class="opt-thumb" src="${getPhoto(text)}" alt="">` : "";
           btn.innerHTML = `<span class="num">${idx+1}</span>${thumb}<span class="opt-text">${escapeHtml(text)}</span><span class="check">✓</span>` + (editMode ? `<span class="opt-edit" title="Edit dish">✎</span>` : "");
           btn.addEventListener('click', ()=>{
-            const cur = selections[day.id][cat];
-            const nowSelecting = !(cur.idx===idx && !cur.custom);
-            selections[day.id][cat] = nowSelecting ? {idx:idx,custom:null} : {idx:null,custom:null};
-            if(nowSelecting) showDishPhoto(text); else hideDishPhoto();
-            pushSelections();
-            renderAll();
+            const items = []; let start = 0;
+            day[cat].forEach((t, i)=>{
+              if(!matchesSearch(t)) return;
+              if(i === idx) start = items.length;
+              items.push({
+                name:t, photo:getPhoto(t),
+                isSelected:()=>{ const c = selections[day.id][cat]; return c.idx===i && !c.custom; },
+                toggle:()=>{
+                  const c = selections[day.id][cat];
+                  const now = !(c.idx===i && !c.custom);
+                  selections[day.id][cat] = now ? {idx:i,custom:null} : {idx:null,custom:null};
+                  if(now) showDishPhoto(t); else hideDishPhoto();
+                  pushSelections(); renderAll();
+                }
+              });
+            });
+            window.openDishViewer(items, start);
           });
           if(editMode){
             const editIcon = btn.querySelector('.opt-edit');
@@ -1214,11 +1238,22 @@
           const thumb = getPhoto(text) ? `<img class="opt-thumb" src="${getPhoto(text)}" alt="">` : "";
           btn.innerHTML = `<span class="num">${idx+1}</span>${thumb}<span class="opt-text">${escapeHtml(text)}</span><span class="check">✓</span>` + (editMode ? `<span class="opt-edit" title="Edit dish">✎</span>` : "");
           btn.addEventListener('click', ()=>{
-            const nowSelecting = selections[day.id][cat] !== text;
-            selections[day.id][cat] = nowSelecting ? text : null;
-            if(nowSelecting) showDishPhoto(text); else hideDishPhoto();
-            pushSelections();
-            renderAll();
+            const items = []; let start = 0;
+            pools[cat].forEach((t, i)=>{
+              if(!matchesSearch(t)) return;
+              if(i === idx) start = items.length;
+              items.push({
+                name:t, photo:getPhoto(t),
+                isSelected:()=> selections[day.id][cat] === t,
+                toggle:()=>{
+                  const now = selections[day.id][cat] !== t;
+                  selections[day.id][cat] = now ? t : null;
+                  if(now) showDishPhoto(t); else hideDishPhoto();
+                  pushSelections(); renderAll();
+                }
+              });
+            });
+            window.openDishViewer(items, start);
           });
           if(editMode){
             const editIcon = btn.querySelector('.opt-edit');
@@ -1445,19 +1480,74 @@
     });
   }
 </script>
-<div class="photo-full" id="photoFull"><img id="photoFullImg" alt=""><div class="photo-full-name" id="photoFullName"></div></div>
+<div class="photo-full" id="photoFull">
+  <div class="pf-count" id="pfCount"></div>
+  <button class="pf-btn pf-close" id="pfClose" aria-label="Close">✕</button>
+  <button class="pf-btn pf-prev" id="pfPrev" aria-label="Previous dish">‹</button>
+  <button class="pf-btn pf-next" id="pfNext" aria-label="Next dish">›</button>
+  <img id="photoFullImg" alt="">
+  <div class="pf-empty" id="pfEmpty"><span class="icon">📷</span><span>Chưa có ảnh</span></div>
+  <div class="photo-full-name" id="photoFullName"></div>
+  <button class="pf-pick" id="pfPick">Pick this dish</button>
+</div>
 <script>
 (function(){
-  const box=document.getElementById('boardPhoto'), img=document.getElementById('boardPhotoImg');
-  const full=document.getElementById('photoFull'), fImg=document.getElementById('photoFullImg'), fName=document.getElementById('photoFullName');
+  const $ = id => document.getElementById(id);
+  const full=$('photoFull'), img=$('photoFullImg'), empty=$('pfEmpty'), nameEl=$('photoFullName'),
+        prev=$('pfPrev'), next=$('pfNext'), pick=$('pfPick'), count=$('pfCount');
+  let items=[], pos=0;
+
+  function draw(){
+    const it = items[pos];
+    if(it.photo){ img.src=it.photo; img.style.display=''; empty.style.display='none'; }
+    else{ img.removeAttribute('src'); img.style.display='none'; empty.style.display=''; }
+    nameEl.textContent = it.name;
+    const multi = items.length > 1;
+    prev.style.display = next.style.display = count.style.display = multi ? '' : 'none';
+    prev.disabled = pos === 0; next.disabled = pos === items.length-1;
+    count.textContent = (pos+1) + ' / ' + items.length;
+    if(it.toggle){
+      pick.style.display='';
+      const sel = it.isSelected && it.isSelected();
+      pick.textContent = sel ? '✓ Picked — tap to remove' : 'Pick this dish';
+      pick.classList.toggle('picked', !!sel);
+    }else pick.style.display='none';
+  }
   function close(){ full.classList.remove('show'); document.body.style.overflow=''; }
-  box.addEventListener('click',()=>{
-    if(img.classList.contains('hidden') || !img.src) return;
-    fImg.src=img.src; fName.textContent=document.getElementById('boardPhotoName').textContent;
-    full.classList.add('show'); document.body.style.overflow='hidden';
+  function go(d){ const n=pos+d; if(n<0||n>=items.length) return; pos=n; draw(); }
+
+  window.openDishViewer = function(list, start){
+    if(!list || !list.length) return;
+    items=list; pos=Math.max(0, Math.min(start||0, list.length-1));
+    draw(); full.classList.add('show'); document.body.style.overflow='hidden';
+  };
+
+  $('pfClose').addEventListener('click', e=>{ e.stopPropagation(); close(); });
+  prev.addEventListener('click', e=>{ e.stopPropagation(); go(-1); });
+  next.addEventListener('click', e=>{ e.stopPropagation(); go(1); });
+  pick.addEventListener('click', e=>{ e.stopPropagation(); items[pos].toggle(); close(); });
+  full.addEventListener('click', e=>{ if(e.target===full) close(); });  // tap empty background closes
+
+  document.addEventListener('keydown', e=>{
+    if(!full.classList.contains('show')) return;
+    if(e.key==='Escape') close();
+    else if(e.key==='ArrowLeft') go(-1);
+    else if(e.key==='ArrowRight') go(1);
   });
-  full.addEventListener('click',close);
-  document.addEventListener('keydown',e=>{ if(e.key==='Escape') close(); });
+
+  // swipe left/right on phones
+  let sx=null;
+  full.addEventListener('touchstart', e=>{ sx=e.touches[0].clientX; }, {passive:true});
+  full.addEventListener('touchend', e=>{
+    if(sx===null) return; const dx=e.changedTouches[0].clientX-sx; sx=null;
+    if(Math.abs(dx)>50) go(dx<0 ? 1 : -1);
+  });
+
+  // header photo box: open current photo
+  $('boardPhoto').addEventListener('click', ()=>{
+    const bImg=$('boardPhotoImg'); if(bImg.classList.contains('hidden') || !bImg.src) return;
+    window.openDishViewer([{ name:$('boardPhotoName').textContent, photo:bImg.src }], 0);
+  });
 })();
 </script>
 </body>
