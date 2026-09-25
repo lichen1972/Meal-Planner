@@ -818,28 +818,28 @@
   /* ================= TAB 1: Daily Set Menu ================= */
   (function(){
     const DAYS = [
-      {id:"mon", label:"Mon", funday:false,
+      {id:"mon", label:"Mo", funday:false,
         fiber:["Ngon su su xào tỏi","Rau bí xào tỏi","Rau lang xào tỏi","Canh rau ngót","Canh cải cúc","Rau cần xào"],
         protein:["Gà hấp","Gà rang gừng","Cánh/Đùi Gà rán","Gà xào nấm","Gà tẩm bột rán","Gà tần ngải cứu"]},
-      {id:"tue", label:"Tue", funday:false,
+      {id:"tue", label:"Tu", funday:false,
         fiber:["Bắp cải luộc","Cải thảo xào nấm","Cải làn xào tỏi","Cải thìa xào nấm","Cải ngọt nấu canh","Cải xoong xào"],
         protein:["Bò hầm","Bò kho","Bò bít tết","Bò xào hành tây","Bò cari","Bê xào"]},
-      {id:"wed", label:"Wed", funday:false,
+      {id:"wed", label:"We", funday:false,
         fiber:["Bí đỏ xào tỏi","Bí ngòi xào tỏi","Cà tím đậu phụ","Ngồng cải luộc","Cải chíp xào nấm","Đậu bắp hấp"],
         protein:["Cá điêu hồng rán","Cá lăng nướng chả","Cá trắm kho giềng","Cá ba sa kho tộ","Cá chép hấp xì dầu","Cá chép om dưa"]},
-      {id:"thu", label:"Thu", funday:false,
+      {id:"thu", label:"Th", funday:false,
         fiber:["Rau muống xào tỏi","Mồng tơi xào tỏi","Xúp lơ xanh luộc","Xúp lơ trắng xào","Canh rau đay","Ngó xuân xào tỏi"],
         protein:["Đậu nhồi thịt","Đậu rán tẩm hành","Đậu phụ thịt băm","Trứng tráng hành củ","Trứng rán (ốp la)","Lợn quay"]},
-      {id:"fri", label:"Fri", funday:false,
+      {id:"fri", label:"Fr", funday:false,
         fiber:["Cải xanh xào","Su su xào","Mướp xào giá","Bầu nấu tôm","Bí xanh xào tỏi","Mướp đắng nhồi thịt"],
         protein:["Tôm sú hấp","Tôm rim","Tôm xào nấm","Đùi/Cánh gà rán","Lẩu gà thuốc bắc","Gà nấu cari"]},
-      {id:"sat", label:"Sat", funday:false,
+      {id:"sat", label:"Sa", funday:false,
         fiber:["Rau dền luộc","Cà rốt / Củ cải luộc","Lặc lè/mướp nhật luộc","Xu hào xào","Đậu rồng luộc","Cải bó xôi xào"],
         protein:["Cá hồi nướng","Cá tầm rang muối","Cá thu rán","Cá nục kho","Cá diếc kho","Cá tầm canh chua"]},
-      {id:"sun", label:"Sun", funday:false,
+      {id:"sun", label:"Su", funday:false,
         fiber:["Xà lách, cà chua, dưa leo","Đậu xanh/Đậu vàng xào","Đậu đũa xào","Măng tây xào","Canh nấm","Canh dọc mùng"],
         protein:["Trứng đúc thịt băm","Thăn/nọng rán","Dọi kho trứng","Ba chỉ rang cháy cạnh","Chân giò giả cầy","Sườn chua ngọt"]},
-      {id:"fun", label:"Funday", funday:true,
+      {id:"fun", label:"XxX", funday:true,
         fiber:["Khoai sọ nấu sườn","Cà tím dài om thịt băm","Salad gà + hành tây","Nộm hoa chuối","Bắp cải tím trộn dầu dấm","Cải kale nấu canh"],
         protein:["Cá lóc kho khô","Cá lăng+thịt dọi","Cá mòi kho nhừ","Tôm hoàng bào","Trứng cút kho thịt","Trứng cà chua"]}
     ];
@@ -1120,7 +1120,7 @@
       "Đậu nhồi thịt","Cá mòi, cá trích","Bê các món","Lòng, gan, cật, dạ dày, tim, nội tạng","Tai, mũi, lưỡi","Sashimi / Sushi","Sườn nướng / chua ngọt"
     ];
 
-    const DAY_LABELS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+    const DAY_LABELS = ["Mo","Tu","We","Th","Fr","Sa","Su"];
     const DAYS = DAY_LABELS.map((label,i)=>({id:"d"+i, label}));
 
     const MASTER_LISTS_KEY = 'mealPlannerMasterLists_v1';
