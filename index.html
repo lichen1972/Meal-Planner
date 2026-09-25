@@ -78,6 +78,9 @@
     cursor:pointer; text-align:center; white-space:nowrap; transition:filter .15s,background .15s; flex-shrink:0;
   }
   .seg:hover{ filter:brightness(1.08); }
+  .controls-row .seg{ box-shadow:0 4px 12px rgba(0,0,0,0.22); }
+  .seg.seg-icon{ width:52px; padding:0; display:inline-flex; align-items:center; justify-content:center; }
+  .seg.seg-icon.seg-editing{ box-shadow:0 0 0 3px #ffd166, 0 4px 12px rgba(0,0,0,0.22); }
   .seg:focus-visible{ outline:2px solid var(--ink); outline-offset:2px; }
   .seg.tab-active{ background:#8a6a41; }
   .seg.seg-hero{ background:#A98253; }
@@ -85,6 +88,7 @@
   @media (max-width:480px){
     .seg{ height:44px; padding:0 14px; font-size:13px; line-height:44px; }
     .seg-group{ padding:10px; gap:7px; }
+    .seg.seg-icon{ width:44px; }
   }
   .seg.seg-full{ background:#A98253; }
   .seg.seg-full.tab-active{ background:#8a6a41; }
@@ -341,14 +345,10 @@
         </header>
 
         <div class="controls-row">
-          <div class="seg-group" id="groupSet" role="tablist">
-            <button id="notSureBtnSet" class="seg seg-hero">I am not sure</button>
-            <button id="clearAllBtnSet" class="seg seg-danger">🗑 Clear all</button>
-          </div>
-          <div class="seg-group" id="groupFull">
-            <button id="tabBtnFull" class="seg seg-full" role="tab" aria-selected="false">Full list</button>
-            <button id="editModeBtn" class="seg seg-full" title="Unlock dish editing">🔒 Updates</button>
-          </div>
+          <button id="notSureBtnSet" class="seg seg-hero">Surprise me</button>
+          <button id="tabBtnFull" class="seg seg-full" role="tab" aria-selected="false">Full list</button>
+          <button id="clearAllBtnSet" class="seg seg-danger">🗑 Clear all</button>
+          <button id="editModeBtn" class="seg seg-full seg-icon" title="Edit dishes (locked)" aria-label="Edit dishes"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
         </div>
 
         <div class="day-nav-row" id="scNavRow">
@@ -540,7 +540,7 @@
   function refreshEditModeUI(){
     const btn = document.getElementById('editModeBtn');
     if(!btn) return;
-    btn.textContent = editMode ? "🔓 Updates on" : "🔒 Updates";
+    btn.title = editMode ? "Editing on — tap to lock" : "Edit dishes (locked)";
     btn.classList.toggle('seg-editing', editMode);
   }
   function rerenderTabs(){
