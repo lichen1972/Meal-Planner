@@ -369,13 +369,13 @@
       <!-- ===================== TAB 1: Daily Set Menu ===================== -->
       <div id="tabSetChoices">
         <div class="days" id="scDaysList"></div>
-        <footer class="note">Tap a dish to see its photo, then tap “Pick this dish”.</footer>
+        <footer class="note">Tap an item to choose it. Tap it again to clear that pick.</footer>
       </div>
 
       <!-- ===================== TAB 2: Full List Builder ===================== -->
       <div id="tabFullList" class="hidden">
         <div class="days" id="flDaysList"></div>
-        <footer class="note">Tap a dish to see its photo, then tap “Pick this dish”.</footer>
+        <footer class="note">Tap an item to choose it. Tap it again to clear that pick.</footer>
       </div>
     </div>
 
@@ -491,6 +491,7 @@
     return 'p' + h.toString(36);
   }
   function getPhoto(name){ return dishPhotos[normalizeName(name)] || null; }
+  window.getDishPhoto = getPhoto;
   function setPhoto(name, dataUrl){
     const key = normalizeName(name);
     if(!key) return;
@@ -946,7 +947,8 @@
                 }
               });
             });
-            window.openDishViewer(items, start);
+            window.lastDishList = {items, start};
+            items[start].toggle();
           });
           if(editMode){
             const editIcon = btn.querySelector('.opt-edit');
@@ -1253,7 +1255,8 @@
                 }
               });
             });
-            window.openDishViewer(items, start);
+            window.lastDishList = {items, start};
+            items[start].toggle();
           });
           if(editMode){
             const editIcon = btn.querySelector('.opt-edit');
@@ -1545,8 +1548,16 @@
 
   // header photo box: open current photo
   $('boardPhoto').addEventListener('click', ()=>{
-    const bImg=$('boardPhotoImg'); if(bImg.classList.contains('hidden') || !bImg.src) return;
-    window.openDishViewer([{ name:$('boardPhotoName').textContent, photo:bImg.src }], 0);
+    const shown = $('boardPhotoName').textContent;
+    if(!shown) return;
+    const L = window.lastDishList;
+    if(L && L.items[L.start] && L.items[L.start].name === shown){
+      L.items.forEach(it=>{ it.photo = window.getDishPhoto(it.name); });  // refresh in case photos changed
+      window.openDishViewer(L.items, L.start);
+    }else{
+      const bImg=$('boardPhotoImg');
+      window.openDishViewer([{ name:shown, photo: bImg.classList.contains('hidden') ? null : bImg.src }], 0);
+    }
   });
 })();
 </script>
