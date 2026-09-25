@@ -295,6 +295,13 @@
     grid-column:1/-1; font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink-soft); text-align:center; padding:10px 0;
   }
 
+
+  /* ---------- Fullscreen photo viewer ---------- */
+  .board-photo{ cursor:zoom-in; }
+  .photo-full{ position:fixed; inset:0; z-index:9999; background:rgba(20,15,10,0.94); display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:zoom-out; opacity:0; pointer-events:none; transition:opacity .2s; }
+  .photo-full.show{ opacity:1; pointer-events:auto; }
+  .photo-full img{ max-width:96vw; max-height:86vh; object-fit:contain; border-radius:6px; box-shadow:0 10px 40px rgba(0,0,0,0.5); }
+  .photo-full-name{ margin-top:14px; color:#fffdf6; font-family:'IBM Plex Mono',monospace; font-size:15px; letter-spacing:.04em; text-align:center; padding:0 16px; }
 </style>
 </head>
 <body>
@@ -1437,6 +1444,21 @@
       });
     });
   }
+</script>
+<div class="photo-full" id="photoFull"><img id="photoFullImg" alt=""><div class="photo-full-name" id="photoFullName"></div></div>
+<script>
+(function(){
+  const box=document.getElementById('boardPhoto'), img=document.getElementById('boardPhotoImg');
+  const full=document.getElementById('photoFull'), fImg=document.getElementById('photoFullImg'), fName=document.getElementById('photoFullName');
+  function close(){ full.classList.remove('show'); document.body.style.overflow=''; }
+  box.addEventListener('click',()=>{
+    if(img.classList.contains('hidden') || !img.src) return;
+    fImg.src=img.src; fName.textContent=document.getElementById('boardPhotoName').textContent;
+    full.classList.add('show'); document.body.style.overflow='hidden';
+  });
+  full.addEventListener('click',close);
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape') close(); });
+})();
 </script>
 </body>
 </html>
