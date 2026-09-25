@@ -106,16 +106,17 @@
   .days{ display:flex; flex-direction:column; gap:14px; }
 
   /* day quick-pick tabs + nav arrows, all in one row */
-  .day-nav-row{ display:flex; align-items:center; gap:16px; margin-bottom:14px; zoom:0.95; }
-  .day-tabs{ display:flex; gap:22px; flex-wrap:wrap; flex:1; justify-content:center; }
+  .day-nav-row{ display:flex; align-items:center; gap:10px; margin-bottom:14px; zoom:0.95; }
+  .day-tabs{ display:flex; gap:12px; flex-wrap:nowrap; flex:1; justify-content:center; min-width:0; }
   .day-tab{
     background:none; border:none; cursor:pointer; padding:4px 1px;
-    font-family:'Inter',sans-serif; font-weight:700; font-size:15px;
-    color:var(--protein-deep); border-bottom:2px solid transparent;
+    font-family:'Inter',sans-serif; font-weight:700; font-size:13px;
+    color:var(--protein-deep); border-bottom:2px solid transparent; white-space:nowrap;
   }
   .day-tab:hover{ color:var(--ink); }
   .day-tab.active{ color:var(--ink); border-bottom-color:var(--protein); }
   .day-tab:focus-visible{ outline:2px solid var(--ink); }
+  @media (max-width:480px){ .day-tabs{ gap:8px; } .day-tab{ font-size:12.5px; } .day-nav-row .arrow-btn{ width:30px; height:30px; } .day-nav-row{ gap:6px; } }
 
   .arrow-btn{
     width:38px; height:34px; border-radius:6px; border:none; cursor:pointer; flex-shrink:0;
@@ -329,7 +330,7 @@
         <header class="board">
           <div class="board-row">
             <div class="board-text">
-              <h1 id="pageTitle">Pick your Fiber and Protein.</h1>
+              <h1 id="pageTitle" title="Go to today" style="cursor:pointer">Pick your Fiber and Protein.</h1>
               <div class="search-wrap">
                 <span class="search-icon">🔎</span>
                 <input type="text" id="dishSearch" class="search-input" placeholder="HÔM NAY ĂN GÌ?" autocomplete="off">
@@ -839,7 +840,7 @@
       {id:"sun", label:"Su", funday:false,
         fiber:["Xà lách, cà chua, dưa leo","Đậu xanh/Đậu vàng xào","Đậu đũa xào","Măng tây xào","Canh nấm","Canh dọc mùng"],
         protein:["Trứng đúc thịt băm","Thăn/nọng rán","Dọi kho trứng","Ba chỉ rang cháy cạnh","Chân giò giả cầy","Sườn chua ngọt"]},
-      {id:"fun", label:"XxX", funday:true,
+      {id:"fun", label:"XX", funday:true,
         fiber:["Khoai sọ nấu sườn","Cà tím dài om thịt băm","Salad gà + hành tây","Nộm hoa chuối","Bắp cải tím trộn dầu dấm","Cải kale nấu canh"],
         protein:["Cá lóc kho khô","Cá lăng+thịt dọi","Cá mòi kho nhừ","Tôm hoàng bào","Trứng cút kho thịt","Trứng cà chua"]}
     ];
@@ -981,6 +982,7 @@
     document.getElementById('scNextDay').addEventListener('click', ()=>{
       if(currentDay<DAYS.length-1){ currentDay++; renderAll(); }
     });
+    window.__goTodayTab1 = ()=>{ currentDay = (new Date().getDay() + 6) % 7; renderAll(); };
 
     function startEdit(span, day, cat){
       const current = displayText(day, cat) || "";
@@ -1310,6 +1312,7 @@
     document.getElementById('flNextDay').addEventListener('click', ()=>{
       if(currentDay<DAYS.length-1){ currentDay++; renderAll(); }
     });
+    window.__goTodayTab2 = ()=>{ currentDay = (new Date().getDay() + 6) % 7; renderAll(); };
 
     function startEdit(span, day, cat){
       const current = selections[day.id][cat] || "";
@@ -1553,6 +1556,13 @@
     }
   });
 })();
+</script>
+<script>
+document.getElementById('pageTitle').addEventListener('click', ()=>{
+  if(window.__goTodayTab1) window.__goTodayTab1();
+  if(window.__goTodayTab2) window.__goTodayTab2();
+  window.scrollTo({top:0, behavior:'smooth'});
+});
 </script>
 </body>
 </html>
