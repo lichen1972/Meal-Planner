@@ -342,7 +342,6 @@
 
         <div class="controls-row">
           <div class="seg-group" id="groupSet" role="tablist">
-            <button id="tabBtnSet" class="seg tab-active" role="tab" aria-selected="true">Let me select</button>
             <button id="notSureBtnSet" class="seg seg-hero">I am not sure</button>
             <button id="clearAllBtnSet" class="seg seg-danger">🗑 Clear all</button>
           </div>
@@ -435,7 +434,6 @@
   "use strict";
 
   /* ================= Tab switching ================= */
-  const tabBtnSet = document.getElementById('tabBtnSet');
   const tabBtnFull = document.getElementById('tabBtnFull');
   const tabSetChoices = document.getElementById('tabSetChoices');
   const tabFullList = document.getElementById('tabFullList');
@@ -449,8 +447,7 @@
   const pageTitle = document.getElementById('pageTitle');
 
   function showSet(){
-    tabBtnSet.setAttribute('aria-selected','true');
-    tabBtnFull.classList.remove('tab-active'); tabBtnFull.setAttribute('aria-selected','false');
+    tabBtnFull.classList.remove('tab-active'); tabBtnFull.setAttribute('aria-selected','false'); tabBtnFull.textContent = 'Full list';
     tabSetChoices.classList.remove('hidden'); tabFullList.classList.add('hidden');
     scNavRow.classList.remove('hidden'); flNavRow.classList.add('hidden');
     scReceipt.classList.remove('hidden'); flReceipt.classList.add('hidden');
@@ -459,15 +456,13 @@
     hideDishPhoto();
   }
   function showFull(){
-    tabBtnFull.classList.add('tab-active'); tabBtnFull.setAttribute('aria-selected','true');
-    tabBtnSet.setAttribute('aria-selected','false');
+    tabBtnFull.classList.add('tab-active'); tabBtnFull.setAttribute('aria-selected','true'); tabBtnFull.textContent = 'Full list ✕';
     tabFullList.classList.remove('hidden'); tabSetChoices.classList.add('hidden');
     flNavRow.classList.remove('hidden'); scNavRow.classList.add('hidden');
     flReceipt.classList.remove('hidden'); scReceipt.classList.add('hidden');
     hideDishPhoto();
   }
-  tabBtnSet.addEventListener('click', showSet);
-  tabBtnFull.addEventListener('click', showFull);
+  tabBtnFull.addEventListener('click', ()=>{ tabFullList.classList.contains('hidden') ? showFull() : showSet(); });
 
   function escapeHtml(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
   function shuffled(arr){
