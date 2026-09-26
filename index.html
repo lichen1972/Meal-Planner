@@ -792,7 +792,7 @@
   function cloudPullOnce(){
     if(!cloudDocRef) return Promise.resolve(null);
     return cloudDocRef.get().then((snap)=> snap.exists ? snap.data() : null).catch((err)=>{
-      console.warn('Cloud sync: initial pull failed', err);
+      console.warn('Cloud sync: initial pull failed', err); window.__cloudWarn && window.__cloudWarn('Không tải được dữ liệu từ cloud (' + (err && (err.code || err.message) || 'lỗi') + ')');
       return null;
     });
   }
@@ -817,6 +817,7 @@
       onPhotos(out);
     }, (err)=>{
       console.warn('Cloud sync: photo listener error', err);
+      window.__cloudWarn && window.__cloudWarn('Không tải được ảnh từ cloud (' + (err && (err.code || err.message) || 'lỗi') + ')');
     });
   }
 
@@ -1514,10 +1515,9 @@
     // so we don't immediately re-process the same data twice.
     cloudListen(applyRemoteData);
   });
-  cloudPullPhotosOnce().then((photos)=>{
-    if(photos) applyRemotePhotos(photos);
-    cloudListenPhotos(applyRemotePhotos);
-  });
+  // The listener's first snapshot already contains every photo, so no separate
+  // pull is needed (halves Firestore reads on each page load).
+  cloudListenPhotos(applyRemotePhotos);
 
 })();
 </script>
@@ -1615,6 +1615,10 @@ document.getElementById('pageTitle').addEventListener('click', ()=>{
   if(window.__goTodayTab2) window.__goTodayTab2();
   window.scrollTo({top:0, behavior:'smooth'});
 });
+</script>
+<div id="cloudWarn" style="display:none;position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:10000;background:#b3261e;color:#fff;font:600 13px Inter,sans-serif;padding:10px 16px;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.3);max-width:92vw;text-align:center;cursor:pointer"></div>
+<script>
+window.__cloudWarn = function(msg){ const el=document.getElementById('cloudWarn'); if(!el) return; el.textContent=msg+' — chạm để đóng'; el.style.display='block'; el.onclick=()=>el.style.display='none'; };
 </script>
 </body>
 </html>
