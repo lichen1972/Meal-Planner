@@ -448,7 +448,7 @@
   const pageTitle = document.getElementById('pageTitle');
 
   function showSet(){
-    tabBtnFull.classList.remove('tab-active'); tabBtnFull.setAttribute('aria-selected','false'); tabBtnFull.textContent = 'Full list';
+    tabBtnFull.classList.remove('tab-active'); tabBtnFull.setAttribute('aria-selected','false'); tabBtnFull.textContent = 'Full list'; setTimeout(()=>window.__syncHeader1 && window.__syncHeader1(),0);
     tabSetChoices.classList.remove('hidden'); tabFullList.classList.add('hidden');
     scNavRow.classList.remove('hidden'); flNavRow.classList.add('hidden');
     scReceipt.classList.remove('hidden'); flReceipt.classList.add('hidden');
@@ -457,7 +457,7 @@
     hideDishPhoto();
   }
   function showFull(){
-    tabBtnFull.classList.add('tab-active'); tabBtnFull.setAttribute('aria-selected','true'); tabBtnFull.textContent = 'Full list ✕';
+    tabBtnFull.classList.add('tab-active'); tabBtnFull.setAttribute('aria-selected','true'); tabBtnFull.textContent = 'Full list ✕'; setTimeout(()=>window.__syncHeader2 && window.__syncHeader2(),0);
     tabFullList.classList.remove('hidden'); tabSetChoices.classList.add('hidden');
     flNavRow.classList.remove('hidden'); scNavRow.classList.add('hidden');
     flReceipt.classList.remove('hidden'); scReceipt.classList.add('hidden');
@@ -526,6 +526,10 @@
       empty.querySelector('span:last-child').textContent = name ? ("Chưa có ảnh — " + name) : "Chọn món để xem ảnh";
     }
   }
+  window.__refreshHeaderPhoto = function(){
+    const n = document.getElementById('boardPhotoName').textContent;
+    if(n) showDishPhoto(n);
+  };
   function hideDishPhoto(){
     const img = document.getElementById('boardPhotoImg');
     const empty = document.getElementById('boardPhotoEmpty');
@@ -864,6 +868,45 @@
 
     let selections = {};
     DAYS.forEach(d=> selections[d.id] = {fiber:{idx:null,custom:null}, protein:{idx:null,custom:null}});
+
+    function buildItems1(day, cat, idx){
+      const items = []; let start = 0;
+      day[cat].forEach((t, i)=>{
+        if(!matchesSearch(t) && i !== idx) return;
+        if(i === idx) start = items.length;
+        items.push({
+          name:t, photo:getPhoto(t),
+          isSelected:()=>{ const c = selections[day.id][cat]; return c.idx===i && !c.custom; },
+          toggle:()=>{
+            const c = selections[day.id][cat];
+            const now = !(c.idx===i && !c.custom);
+            selections[day.id][cat] = now ? {idx:i,custom:null} : {idx:null,custom:null};
+            if(now) showDishPhoto(t); else hideDishPhoto();
+            pushSelections(); renderAll();
+          }
+        });
+      });
+      return {items, start};
+    }
+    let syncedDay1 = null;
+    function syncHeader1(force){
+      const fl = document.getElementById('tabFullList');
+      if(fl && !fl.classList.contains('hidden')) return;
+      const shown = document.getElementById('boardPhotoName').textContent;
+      if(!force && syncedDay1 === currentDay && shown) return;
+      syncedDay1 = currentDay;
+      const day = DAYS[currentDay], sel = selections[day.id];
+      for(const cat of ['fiber','protein']){
+        const c = sel && sel[cat]; if(!c) continue;
+        if(c.custom){ window.lastDishList = null; showDishPhoto(c.custom); return; }
+        if(c.idx !== null && c.idx !== undefined && day[cat][c.idx] !== undefined){
+          window.lastDishList = buildItems1(day, cat, c.idx); showDishPhoto(day[cat][c.idx]); return;
+        }
+      }
+      window.lastDishList = null; hideDishPhoto();
+    }
+    window.__syncHeader1 = ()=> syncHeader1(true);
+
     let currentDay = (new Date().getDay() + 6) % 7; // 0=Mon...6=Sun, defaults to today
     function pushSelections(){ cloudPush('selectionsTab1', selections); }
 
@@ -925,24 +968,9 @@
           const thumb = getPhoto(text) ? `<img class="opt-thumb" src="${getPhoto(text)}" alt="">` : "";
           btn.innerHTML = `<span class="num">${idx+1}</span>${thumb}<span class="opt-text">${escapeHtml(text)}</span><span class="check">✓</span>` + (editMode ? `<span class="opt-edit" title="Edit dish">✎</span>` : "");
           btn.addEventListener('click', ()=>{
-            const items = []; let start = 0;
-            day[cat].forEach((t, i)=>{
-              if(!matchesSearch(t)) return;
-              if(i === idx) start = items.length;
-              items.push({
-                name:t, photo:getPhoto(t),
-                isSelected:()=>{ const c = selections[day.id][cat]; return c.idx===i && !c.custom; },
-                toggle:()=>{
-                  const c = selections[day.id][cat];
-                  const now = !(c.idx===i && !c.custom);
-                  selections[day.id][cat] = now ? {idx:i,custom:null} : {idx:null,custom:null};
-                  if(now) showDishPhoto(t); else hideDishPhoto();
-                  pushSelections(); renderAll();
-                }
-              });
-            });
-            window.lastDishList = {items, start};
-            items[start].toggle();
+            const L = buildItems1(day, cat, idx);
+            window.lastDishList = L;
+            L.items[L.start].toggle();
           });
           if(editMode){
             const editIcon = btn.querySelector('.opt-edit');
@@ -1074,7 +1102,7 @@
       }
     });
 
-    function renderAll(){ renderDayTabs(); renderDays(); renderReceipt(); }
+    function renderAll(){ renderDayTabs(); renderDays(); renderReceipt(); syncHeader1(); }
     window.__renderTab1 = renderAll;
     window.__applyRemoteTab1 = function(data){
       if(data.dailyDishes){
@@ -1178,6 +1206,43 @@
 
     let selections = {};
     DAYS.forEach(d=> selections[d.id] = {fiber:null, protein:null});
+    function buildItems2(day, cat, idx){
+      const pools = {fiber: MASTER_FIBER, protein: MASTER_PROTEIN};
+      const items = []; let start = 0;
+      pools[cat].forEach((t, i)=>{
+        if(!matchesSearch(t) && i !== idx) return;
+        if(i === idx) start = items.length;
+        items.push({
+          name:t, photo:getPhoto(t),
+          isSelected:()=> selections[day.id][cat] === t,
+          toggle:()=>{
+            const now = selections[day.id][cat] !== t;
+            selections[day.id][cat] = now ? t : null;
+            if(now) showDishPhoto(t); else hideDishPhoto();
+            pushSelections(); renderAll();
+          }
+        });
+      });
+      return {items, start};
+    }
+    let syncedDay2 = null;
+    function syncHeader2(force){
+      const fl = document.getElementById('tabFullList');
+      if(!fl || fl.classList.contains('hidden')) return;
+      const shown = document.getElementById('boardPhotoName').textContent;
+      if(!force && syncedDay2 === currentDay && shown) return;
+      syncedDay2 = currentDay;
+      const day = DAYS[currentDay], sel = selections[day.id];
+      const pools = {fiber: MASTER_FIBER, protein: MASTER_PROTEIN};
+      for(const cat of ['fiber','protein']){
+        const t = sel && sel[cat]; if(!t) continue;
+        const i = pools[cat].indexOf(t);
+        window.lastDishList = i >= 0 ? buildItems2(day, cat, i) : null;
+        showDishPhoto(t); return;
+      }
+      window.lastDishList = null; hideDishPhoto();
+    }
+    window.__syncHeader2 = ()=> syncHeader2(true);
     let currentDay = (new Date().getDay() + 6) % 7; // 0=Mon...6=Sun, defaults to today
     function pushSelections(){ cloudPush('selectionsTab2', selections); }
 
@@ -1235,23 +1300,9 @@
           const thumb = getPhoto(text) ? `<img class="opt-thumb" src="${getPhoto(text)}" alt="">` : "";
           btn.innerHTML = `<span class="num">${idx+1}</span>${thumb}<span class="opt-text">${escapeHtml(text)}</span><span class="check">✓</span>` + (editMode ? `<span class="opt-edit" title="Edit dish">✎</span>` : "");
           btn.addEventListener('click', ()=>{
-            const items = []; let start = 0;
-            pools[cat].forEach((t, i)=>{
-              if(!matchesSearch(t)) return;
-              if(i === idx) start = items.length;
-              items.push({
-                name:t, photo:getPhoto(t),
-                isSelected:()=> selections[day.id][cat] === t,
-                toggle:()=>{
-                  const now = selections[day.id][cat] !== t;
-                  selections[day.id][cat] = now ? t : null;
-                  if(now) showDishPhoto(t); else hideDishPhoto();
-                  pushSelections(); renderAll();
-                }
-              });
-            });
-            window.lastDishList = {items, start};
-            items[start].toggle();
+            const L = buildItems2(day, cat, idx);
+            window.lastDishList = L;
+            L.items[L.start].toggle();
           });
           if(editMode){
             const editIcon = btn.querySelector('.opt-edit');
@@ -1404,7 +1455,7 @@
       }
     });
 
-    function renderAll(){ renderDayTabs(); renderDays(); renderReceipt(); }
+    function renderAll(){ renderDayTabs(); renderDays(); renderReceipt(); syncHeader2(); }
     window.__renderTab2 = renderAll;
     window.__applyRemoteTab2 = function(data){
       if(data.masterLists){
@@ -1455,6 +1506,7 @@
     try{ localStorage.setItem(PHOTO_KEY, JSON.stringify(dishPhotos)); }catch(e){}
     if(window.__renderTab1) window.__renderTab1();
     if(window.__renderTab2) window.__renderTab2();
+    if(window.__refreshHeaderPhoto) window.__refreshHeaderPhoto();
   }
   cloudPullOnce().then((data)=>{
     if(data) applyRemoteData(data);
